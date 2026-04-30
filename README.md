@@ -3,6 +3,7 @@
 > *“¿Qué tan curiosa puede ser una pregunta?”*
 
 ¿Es la atención inducida por la coherencia?, ¿Es la coherencia inducida por el ritmo? y así, ¿Es el estrés inducido por la atención? La motivación de este proyecto es la fascinación que encuentro en la capacidad humana de crear preguntas, de crear caminos, imágenes sobre una belleza que parece arbitraria. ¿Tendrá esta belleza la probabilidad de ser coherente?.
+---
 **Gueta** es una plataforma de experimentación avanzada diseñada para transformar sistemas estocásticos multivariados en una experiencia sensorial tangible. Fusionamos la **Teoría de Matrices Aleatorias**, **Geometría Diferencial** y **Síntesis Espectral** para revelar *la naturaleza oculta de la coherencia*.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
