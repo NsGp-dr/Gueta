@@ -1,73 +1,182 @@
 # 🌌 ∑ GUETA · Observatorio Estocástico Geodésico
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Status-Research_Phase-blueviolet?style=for-the-badge">
-  <img src="https://img.shields.io/badge/Mathematics-TDA%20%7C%20Spectral-gold?style=for-the-badge">
-  <img src="https://img.shields.io/badge/Sound-Synthesis_Vite-00e2ff?style=for-the-badge">
-</p>
+> *“La geometría es la brújula del caos.”*
 
-> *"𝙻𝚊 𝚐𝚎𝚘𝚖𝚎𝚝𝚛í𝚊 𝚎𝚜 𝚕𝚊 𝚋𝚛ú𝚓𝚞𝚕𝚊 𝚍𝚎𝚕 𝚌𝚊𝚘𝚜."*
+**Gueta** es una plataforma de experimentación avanzada que transforma sistemas estocásticos multivariados en una experiencia sensorial tangible. Fusión de *Teoría de Matrices Aleatorias*, *Geometría Diferencial* y *Síntesis Espectral*, Gueta revela la estructura oculta de la coherencia a través de visualizaciones dinámicas y sonificación armónica.
 
-**Gueta** es una plataforma de experimentación avanzada diseñada para transformar sistemas estocásticos multivariados en una experiencia sensorial tangible. Fusionamos la **Teoría de Matrices Aleatorias**, **Geometría Diferencial** y **Síntesis Espectral** para revelar *la naturaleza oculta de la coherencia*.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## 🧪 𝙻𝚊𝚋𝚘𝚛𝚊𝚝𝚘𝚛𝚒𝚘𝚜 𝚍𝚎 𝙸𝚗𝚖𝚎𝚛𝚜𝚒ó𝚗
+## 🧪 Laboratorios de Inmersión
 
 | Módulo | Enfoque Conceptual | Dimensión Sensorial |
-| :--- | :--- | :--- |
-| **GuetaRythm** | Estabilidad espectral y correlaciones dinámicas. | Ritmo y Pulso de Datos |
-| **Stochastic Lab** | Cópulas, Inferencia Bayesiana y Ley de Marchenko–Pastur. | Armonía Estocástica |
-| **Clifford Membrane** | Atractores caóticos y geodésicas en variedades invariantes. | Geometría del Sonido |
+|--------|--------------------|----------------------|
+| **GuetaRythm** | Estabilidad espectral y correlaciones dinámicas | Ritmo y pulso de datos |
+| **Stochastic Lab** | Cópulas, Inferencia Bayesiana y Ley de Marchenko–Pastur | Armonía Estocástica |
+| **Clifford Membrane** | Atractores caóticos y geodésicas en variedades invariantes | Geometría del sonido |
 
 ---
 
-## 🧠 𝙵𝚞𝚗𝚍𝚊𝚖𝚎𝚗𝚝𝚘𝚜 𝙼𝚊𝚝𝚎𝚖á𝚝𝚒𝚌𝚘𝚜
+## 🧠 Fundamentos Matemáticos
 
-### 1. 𝙳𝚎𝚝𝚎𝚌𝚌𝚒ó𝚗 𝚍𝚎 𝚂𝚎ñ𝚊𝚕: 𝙼𝚊𝚛𝚌𝚑𝚎𝚗𝚔𝚘–𝙿𝚊𝚜𝚝𝚞𝚛
-Para distinguir la estructura real del ruido blanco, analizamos la densidad de los eigenvalores $\lambda$ de la matriz de correlación $R$. Bajo la hipótesis nula, estos deben habitar en el soporte:
-$$ \lambda_\pm = \sigma^2(1 \pm \sqrt{q})^2 $$
-Cualquier autovalor fuera de este límite es tratado como **información estructural dominante**, dictando las frecuencias fundamentales de nuestro motor de síntesis.
+### 1. Detección de Señal: Marchenko–Pastur
 
-### 2. 𝙼𝚊𝚢𝚘𝚛𝚒𝚣𝚊𝚌𝚒ó𝚗 𝚢 𝙴𝚗𝚝𝚛𝚘𝚙í𝚊 𝚍𝚎 𝚂𝚒𝚗𝚔𝚑𝚘𝚛𝚗
-Utilizamos el algoritmo de Sinkhorn para normalizar la matriz de correlación en una matriz **doble mente estocástica**. Aplicamos el concepto de mayorización para evaluar la dispersión:
-*   **Uniformidad:** Menor mayorización $\rightarrow$ Sonido etéreo.
-*   **Concentración:** Mayor mayorización $\rightarrow$ Sonido punzante y definido.
+Para una matriz de datos `X` de dimensiones `p × n` (p variables, n observaciones), la matriz de correlación muestral es `R = (1/n) X Xᵀ`. Bajo la hipótesis nula de ruido blanco gaussiano, la distribución de los eigenvalores de `R` sigue la ley de Marchenko–Pastur:
 
-### 3. 𝙶𝚎𝚘𝚖𝚎𝚝𝚛í𝚊 𝙸𝚗𝚟𝚊𝚛𝚒𝚊𝚗𝚝𝚎 (𝙰𝚝𝚛𝚊𝚌𝚝𝚘𝚛 𝚍𝚎 𝙲𝚕𝚒𝚏𝚏𝚘𝚛𝚍)
-La visualización dinámica se rige por:
-$$ x_{n+1} = \sin(a y_n) + c \cos(a x_n) $$
-$$ y_{n+1} = \sin(b x_n) + d \cos(b y_n) $$
-Donde los coeficientes $(a, b, c, d)$ son **funciones de estado** derivadas directamente de los eigenvalores dominantes y la entropía de Shannon del sistema.
+\[
+\rho(\lambda) = \frac{\sqrt{(\lambda_+ - \lambda)(\lambda - \lambda_-)}}{2\pi\sigma^2 \lambda}, \quad \lambda \in [\lambda_-, \lambda_+]
+\]
+
+con límites:
+
+\[
+\lambda_\pm = \sigma^2(1 \pm \sqrt{q})^2, \qquad q = p/n.
+\]
+
+**Criterio de señal:** Todo eigenvalor observado que supere `λ₊` corresponde a estructura real (correlación no espuria). Estos eigenvalores dominantes determinan las frecuencias fundamentales del sintetizador y la topología del atractor de Clifford.
+
+### 2. Mayorización y Doble Estocasticidad (Sinkhorn)
+
+A partir de la matriz de correlación absoluta `|R|`, aplicamos el algoritmo de **Sinkhorn** para obtener una matriz **doblemente estocástica** `DS` (sumas fila y columna iguales a 1). Para cada fila `ds_i` de `DS`, se calcula su vector de **mayorización**:
+
+\[
+M(ds_i) = \left( \sum_{j=1}^{k} ds_{i(j)}^\downarrow \right)_{k=1}^{p}
+\]
+
+donde `ds_{i(j)}^\downarrow` es la fila ordenada de forma descendente. La comparación de las curvas de mayorización entre variables evalúa la dispersión de la correlación:
+
+- **Uniformidad** → menor mayorización → sonido etéreo, difuso.
+- **Concentración** → mayor mayorización → sonido punzante, definido.
+
+### 3. Schur‑Convexidad y Riesgo
+
+Una función `Φ` es **Schur‑convexa** si `x ≻ y` (x mayoriza a y) implica `Φ(x) ≥ Φ(y)`. En Gueta, el score de Schur se define como:
+
+\[
+S = \frac{\max(\lambda_i)}{\frac{1}{p}\sum \lambda_i}
+\]
+
+Este índice mide la concentración de la varianza: `S = 1` indica uniformidad, `S = p` indica dominancia completa. El riesgo estocástico se calcula como:
+
+\[
+\text{riesgo} = \frac{\#\{\lambda_i > \lambda_+\}}{p} + 0.3 \cdot \frac{\lambda_1}{3\lambda_+}
+\]
+
+y se utiliza para modular la amplitud del LFO y la deformación de las geodésicas del toro.
+
+### 4. Geometría Invariante: Atractor de Clifford
+
+El sistema dinámico discreto en `ℝ²`:
+
+\[
+\begin{cases}
+x_{n+1} = \sin(a\, y_n) + c \cos(a\, x_n) \\[4pt]
+y_{n+1} = \sin(b\, x_n) + d \cos(b\, y_n)
+\end{cases}
+\]
+
+Los parámetros `(a,b,c,d)` se actualizan en tiempo real a partir de los eigenvalores `λ₁, λ₂, λ₃`, la entropía de Shannon `H` y la planoitud espectral `F`:
+
+\[
+\begin{aligned}
+a &= -1.5 - 0.6\,\lambda_1 - 0.2\,H \\
+b &= 1.5 + 0.6\,\lambda_2 + 0.3\,F \\
+c &= 0.7 + 0.8\,\lambda_3 + 0.4\,(1-F) \\
+d &= -0.8 + 0.6\,\text{copula} - 0.3\,H
+\end{aligned}
+\]
+
+con límites que garantizan comportamiento caótico (sin colapso a punto fijo). La órbita se visualiza como una nube de puntos cuya densidad refleja la frecuencia de visita de la trayectoria.
+
+### 5. Geodésicas sobre el Toro
+
+Un toro paramétrico se define como:
+
+\[
+\mathbf{r}(\theta) = \big( (R + r \cos(q\theta)) \cos(p\theta),\; (R + r \cos(q\theta)) \sin(p\theta),\; r \sin(q\theta) \big)
+\]
+
+Los enteros `p, q` se derivan de los eigenvalores:  
+`p = ⌊2 + 5λ₁⌋`, `q = ⌊1 + 6λ₂⌋`. La curva traza una **geodésica** (no necesariamente cerrada) sobre la superficie del toro. Su torsión es modulada por el riesgo estocástico, generando patrones visuales que revelan la estructura de dependencia global.
+
+### 6. Curvas de Lissajous y Relaciones Armónicas
+
+Para frecuencias `f_x = a ω`, `f_y = b ω`, la curva de Lissajous responde a:
+
+\[
+x(t) = \sin(a \omega t + \phi), \quad y(t) = \sin(b \omega t)
+\]
+
+La relación `a:b` se extrae directamente de los eigenvalores y de la entropía, simulando la interacción entre modos propios del sistema. La animación en tiempo real refleja la **consonancia armónica** de la matriz de correlación.
 
 ---
 
-## 🎛️ 𝙰𝚛𝚚𝚞𝚒𝚝𝚎𝚌𝚝𝚞𝚛𝚊 𝚍𝚎 𝚂í𝚗𝚝𝚎𝚜𝚒𝚜 𝚍𝚎 𝙰𝚞𝚍𝚒𝚘
+## 🎛️ Arquitectura de Síntesis de Audio
 
-El sintetizador de Gueta opera como un **observatorio auditivo**:
+El sintetizador de Gueta funciona como un **observatorio auditivo**. Cada componente del sistema estocástico se traduce en un parámetro sonoro:
 
-*   **Mapeo Espectral:** Los autovalores $\lambda_i$ se mapean a la serie armónica $f_i = f_{base} \cdot (\lambda_i / \lambda_{max})$.
-*   **LFO Entrópico:** La inestabilidad del sistema modula la fase y el tremolo, permitiendo "escuchar" el riesgo.
-*   **Snap Armónico:** Una función de cuantización que atrae las frecuencias hacia ratios racionales, transformando datos en consonancia musical.
+### Mapeo Espectral
+
+Los eigenvalores normalizados `\tilde{λ}_i = λ_i / λ_{\max}` se convierten en frecuencias audibles:
+
+\[
+f_i = f_{\text{base}} \cdot \frac{\lambda_i}{\lambda_{\max}} \cdot (i+1), \quad i = 1,\dots,5
+\]
+
+donde `f_base` (ajustable por el usuario, típicamente 40–400 Hz) establece la tónica. Las componentes principales generan armónicos bajos y dominantes; los eigenvalores menores producen armónicos agudos de menor amplitud.
+
+### Tipo de Onda y Mezcla
+
+Cada canal combina una onda sinusoidal pura con una onda diente de sierra mediante el parámetro `wave ∈ [0,1]`:
+
+\[
+\text{señal}_i(t) = (1-\text{wave})\cdot \sin(2\pi f_i t) + \text{wave}\cdot \text{sawtooth}(2\pi f_i t)
+\]
+
+La diente de sierra aporta contenido armónico rico (múltiplos enteros de `f_i`), ideal para representar estructuras de alta entropía o riesgo.
+
+### Envolvente y LFO Entrópico
+
+La ganancia de cada oscilador se modula por un **LFO** cuya profundidad y velocidad dependen de la entropía espectral `H` y del score de Schur `S`:
+
+\[
+g_i(t) = A_i \left(0.6 + 0.4 \sin(2\pi \nu t + \varphi_i)\right), \quad \nu = 0.03 + 0.08H
+\]
+
+con amplitud base `A_i = \frac{0.6}{k} e^{-0.5 i S}`. Este tremolo varía con la complejidad del sistema: a mayor entropía, mayor fluctuación temporal.
+
+### Snap Armónico
+
+El parámetro `snap ∈ [0,1]` fuerza a que las frecuencias generadas se alineen con una relación racional simple respecto a la frecuencia base (2:1, 3:2, 4:3, etc.), induciendo **consonancia** perceptiva:
+
+\[
+f_i^{\text{snap}} = f_{\text{base}} \cdot \text{best\_ratio} \cdot \text{snap} + f_i \cdot (1-\text{snap})
+\]
+
+donde `best_ratio` es la relación armónica más cercana de la lista `[1, 2, 3/2, 4/3, 5/4, 5/3, 7/4, 2, 9/4, 3]`.
+
+### Reverberación Convolucional
+
+Una respuesta al impulso artificial (ruido blanco decaído exponencialmente) se utiliza para generar reverberación, simulando un espacio acústico. El nivel de reverb se controla mediante un parámetro `reverb ∈ [0,1]`.
 
 ---
 
-## 🛠️ 𝚂𝚝𝚊𝚌𝚔 𝚃é𝚌𝚗𝚒𝚌𝚘
+## 🛠️ Stack Técnico
 
-*   **Core:** JavaScript (ES6+) / Vite.
-*   **Graphics:** Canvas 2D & WebGL para renderizado de alta densidad de partículas.
-*   **Audio:** Web Audio API con osciladores polifónicos y filtros biquad.
-*   **Formalismo:** Documentación técnica en **LaTeX** para la preservación del rigor científico.
+- **Core**: JavaScript (ES6+) / Vite  
+- **Graphics**: Canvas 2D & WebGL (renderizado de alta densidad de partículas)  
+- **Audio**: Web Audio API (osciladores polifónicos, filtros biquad, convolución)  
+- **Formalismo matemático**: LaTeX en documentación y comentarios  
+- **Responsive**: Grid CSS adaptable a escritorio y móviles  
 
 ---
 
-## 🚀 𝙸𝚗𝚜𝚝𝚊𝚕𝚊𝚌𝚒ó𝚗
+## 📦 Uso Rápido
+
+Clona el repositorio y sirve con un servidor local:
+
 ```bash
-# Clonar el observatorio
-git clone [https://github.com/NsGp-dr/zzsynth.git](https://github.com/NsGp-dr/zzsynth.git)
-
-# Acceder al directorio
-cd zzsynth
-
-# Lanzar el servidor local
-npx http-server .
+git clone https://github.com/tuusuario/gueta-stochastic-lab.git
+cd gueta-stochastic-lab
+npx http-server -o
