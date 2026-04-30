@@ -1,93 +1,73 @@
-∑ GUETA · Observatorio Estocástico Geodésico
+# 🌌 ∑ GUETA · Observatorio Estocástico Geodésico
 
-Gueta es una plataforma de experimentación avanzada que trasciende la visualización de datos convencional para convertirse en un órgano de percepción sensorial. Fusiona la teoría de matrices aleatorias, geometría diferencial y síntesis espectral para transformar sistemas estocásticos multivariados en variedades visuales y estructuras armónicas.
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Research_Phase-blueviolet?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Mathematics-TDA%20%7C%20Spectral-gold?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Sound-Synthesis_Vite-00e2ff?style=for-the-badge">
+</p>
 
-Basado en la premisa de que "la cognición es una experiencia intuitiva", Gueta permite escuchar la señal estructural y observar la topología del riesgo a través de tres laboratorios de inmersión:
+> *"𝙻𝚊 𝚐𝚎𝚘𝚖𝚎𝚝𝚛í𝚊 𝚎𝚜 𝚕𝚊 𝚋𝚛ú𝚓𝚞𝚕𝚊 𝚍𝚎𝚕 𝚌𝚊𝚘𝚜."*
 
-    GuetaRythm: Análisis de estabilidad espectral y correlaciones dinámicas.
+**Gueta** es una plataforma de experimentación avanzada diseñada para transformar sistemas estocásticos multivariados en una experiencia sensorial tangible. Fusionamos la **Teoría de Matrices Aleatorias**, **Geometría Diferencial** y **Síntesis Espectral** para revelar *la naturaleza oculta de la coherencia*.
 
-    Stochastic Lab: Inferencia bayesiana, cópulas y el límite de Marchenko–Pastur.
+---
 
-    Clifford Membrane: Exploración de atractores caóticos y geodésicas sobre toros, modulados por la entropía del sistema.
+## 🧪 𝙻𝚊𝚋𝚘𝚛𝚊𝚝𝚘𝚛𝚒𝚘𝚜 𝚍𝚎 𝙸𝚗𝚖𝚎𝚛𝚜𝚒ó𝚗
 
-🧠 Marco Teórico y Rigor Matemático
-1. El Límite de la Señal: Marchenko–Pastur
+| Módulo | Enfoque Conceptual | Dimensión Sensorial |
+| :--- | :--- | :--- |
+| **GuetaRythm** | Estabilidad espectral y correlaciones dinámicas. | Ritmo y Pulso de Datos |
+| **Stochastic Lab** | Cópulas, Inferencia Bayesiana y Ley de Marchenko–Pastur. | Armonía Estocástica |
+| **Clifford Membrane** | Atractores caóticos y geodésicas en variedades invariantes. | Geometría del Sonido |
 
-En el análisis de grandes matrices de datos X∈Rp×n, la distinción entre ruido y estructura es fundamental. Gueta evalúa la matriz de correlación R=n1​XXT. Bajo la hipótesis nula, la densidad de los eigenvalores sigue la ley de Marchenko–Pastur:
-ρ(λ)=2πσ2λq(λ+​−λ)(λ−λ−​)​​,λ∈[λ−​,λ+​]
+---
 
-Donde q=p/n. Los eigenvalores que escapan de este soporte (λ>λ+​) son tratados como los modos propios de la señal, los cuales dictan la frecuencia fundamental de la sonificación y los parámetros del atractor.
-2. Mayorización y Doble Estocasticidad
+## 🧠 𝙵𝚞𝚗𝚍𝚊𝚖𝚎𝚗𝚝𝚘𝚜 𝙼𝚊𝚝𝚎𝚖á𝚝𝚒𝚌𝚘𝚜
 
-Implementamos el Algoritmo de Sinkhorn para transformar la matriz de correlación en una matriz doblemente estocástica DS. A través de la Mayorización, comparamos la dispersión de información entre variables:
+### 1. 𝙳𝚎𝚝𝚎𝚌𝚌𝚒ó𝚗 𝚍𝚎 𝚂𝚎ñ𝚊𝚕: 𝙼𝚊𝚛𝚌𝚑𝚎𝚗𝚔𝚘–𝙿𝚊𝚜𝚝𝚞𝚛
+Para distinguir la estructura real del ruido blanco, analizamos la densidad de los eigenvalores $\lambda$ de la matriz de correlación $R$. Bajo la hipótesis nula, estos deben habitar en el soporte:
+$$ \lambda_\pm = \sigma^2(1 \pm \sqrt{q})^2 $$
+Cualquier autovalor fuera de este límite es tratado como **información estructural dominante**, dictando las frecuencias fundamentales de nuestro motor de síntesis.
 
-    Si una variable dsi​ mayoriza a dsj​, su "huella" de correlación es más concentrada y menos entrópica.
+### 2. 𝙼𝚊𝚢𝚘𝚛𝚒𝚣𝚊𝚌𝚒ó𝚗 𝚢 𝙴𝚗𝚝𝚛𝚘𝚙í𝚊 𝚍𝚎 𝚂𝚒𝚗𝚔𝚑𝚘𝚛𝚗
+Utilizamos el algoritmo de Sinkhorn para normalizar la matriz de correlación en una matriz **doble mente estocástica**. Aplicamos el concepto de mayorización para evaluar la dispersión:
+*   **Uniformidad:** Menor mayorización $\rightarrow$ Sonido etéreo.
+*   **Concentración:** Mayor mayorización $\rightarrow$ Sonido punzante y definido.
 
-    Este ordenamiento parcial se traduce en la envolvente de amplitud de los osciladores.
+### 3. 𝙶𝚎𝚘𝚖𝚎𝚝𝚛í𝚊 𝙸𝚗𝚟𝚊𝚛𝚒𝚊𝚗𝚝𝚎 (𝙰𝚝𝚛𝚊𝚌𝚝𝚘𝚛 𝚍𝚎 𝙲𝚕𝚒𝚏𝚏𝚘𝚛𝚍)
+La visualización dinámica se rige por:
+$$ x_{n+1} = \sin(a y_n) + c \cos(a x_n) $$
+$$ y_{n+1} = \sin(b x_n) + d \cos(b y_n) $$
+Donde los coeficientes $(a, b, c, d)$ son **funciones de estado** derivadas directamente de los eigenvalores dominantes y la entropía de Shannon del sistema.
 
-3. Dinámica del Caos: Atractor de Clifford
+---
 
-La "Membrana" utiliza un sistema dinámico discreto cuyas órbitas están gobernadas por:
-xn+1​=sin(ayn​)+ccos(axn​)
-yn+1​=sin(bxn​)+dcos(byn​)
+## 🎛️ 𝙰𝚛𝚚𝚞𝚒𝚝𝚎𝚌𝚝𝚞𝚛𝚊 𝚍𝚎 𝚂í𝚗𝚝𝚎𝚜𝚒𝚜 𝚍𝚎 𝙰𝚞𝚍𝚒𝚘
 
-En Gueta, los coeficientes (a,b,c,d) no son estáticos; son funciones de estado de la matriz de datos:
+El sintetizador de Gueta opera como un **observatorio auditivo**:
 
-    a,b dependen de los eigenvalores dominantes (estructura).
+*   **Mapeo Espectral:** Los autovalores $\lambda_i$ se mapean a la serie armónica $f_i = f_{base} \cdot (\lambda_i / \lambda_{max})$.
+*   **LFO Entrópico:** La inestabilidad del sistema modula la fase y el tremolo, permitiendo "escuchar" el riesgo.
+*   **Snap Armónico:** Una función de cuantización que atrae las frecuencias hacia ratios racionales, transformando datos en consonancia musical.
 
-    c,d dependen de la entropía de Shannon y la correlación de cópulas (complejidad).
+---
 
-4. Topología del Sonido: Geodésicas sobre Toros
+## 🛠️ 𝚂𝚝𝚊𝚌𝚔 𝚃é𝚌𝚗𝚒𝚌𝚘
 
-Visualizamos la coherencia mediante curvas geodésicas en un toro paramétrico. La relación de enrollamiento (p,q) es una proyección directa de la relación entre los dos componentes principales del sistema, permitiendo identificar visualmente estados de resonancia o disonancia estocástica.
-🎛️ Arquitectura de Sonidificación Espectral
+*   **Core:** JavaScript (ES6+) / Vite.
+*   **Graphics:** Canvas 2D & WebGL para renderizado de alta densidad de partículas.
+*   **Audio:** Web Audio API con osciladores polifónicos y filtros biquad.
+*   **Formalismo:** Documentación técnica en **LaTeX** para la preservación del rigor científico.
 
-El motor de audio de Gueta no es decorativo; es un procedimiento analítico.
+---
 
-    Mapeo de Eigenvalores: Los autovalores λi​ se normalizan y escalan a la serie armónica fi​=fbase​⋅(λi​/λmax​).
-
-    Modulación por Entropía: La entropía espectral H controla un LFO que afecta la fase de los osciladores, creando texturas de "vibrato" en sistemas de alta incertidumbre.
-
-    Snap Armónico: Para facilitar la interpretación intuitiva, el sistema permite forzar las frecuencias hacia ratios racionales (3:2, 4:3, etc.), transformando la correlación estadística en consonancia musical.
-
-🛠️ Tecnologías y Stack
-
-    Engine: JavaScript (ES6+) con procesamiento de señales en tiempo real.
-
-    Visuals: Canvas 2D / WebGL para la renderización de nubes de puntos de alta densidad.
-
-    Audio: Web Audio API (Osciladores polifónicos, filtros biquad, reverb convolucional).
-
-    Matemáticas: Implementaciones nativas de descomposición espectral, algoritmos de Sinkhorn y transformadas de probabilidad integral (PIT).
-
-🚀 Instalación y Despliegue
-
-Este proyecto está optimizado para ejecutarse en entornos modernos de navegador.
-Bash
-
+## 🚀 𝙸𝚗𝚜𝚝𝚊𝚕𝚊𝚌𝚒ó𝚗
+```bash
 # Clonar el observatorio
-git clone https://github.com/NsGp-dr/gueta.git
+git clone [https://github.com/NsGp-dr/zzsynth.git](https://github.com/NsGp-dr/zzsynth.git)
 
-# Entrar al directorio
-cd gueta
+# Acceder al directorio
+cd zzsynth
 
-# Ejecutar con cualquier servidor local (ej. Live Server o http-server)
+# Lanzar el servidor local
 npx http-server .
-
-🔮 Visión: "La Naturaleza Oculta de la Coherencia"
-
-Gueta se concibe como una herramienta de docencia e investigación. Buscamos que el estudiante de posgrado o el investigador pueda:
-
-    Sentir la transición de fase entre ruido y señal.
-
-    Explorar la geometría de las variedades invariantes sin la barrera de la abstracción pura.
-
-    Validar visualmente la independencia de variables mediante el análisis de cópulas.
-
-🤝 Contribuciones y Desarrollo
-
-Desarrollado por NsGp-dr. Como proyecto nacido en un semillero de investigación matemática, las contribuciones enfocadas en topología, teoría de números aplicada a la música y análisis multivariado son más que bienvenidas.
-
-Licencia: MIT
-
-"Hacia una cognición de los datos a través de la armonía de las formas."
