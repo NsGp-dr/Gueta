@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>MEMBRANE · Clifford + Toro + Geodésicas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg:      #04080c;
+    --panel:   #060c10;
+    --border:  #0f1e2a;
+    --c1:      #00e5ff;
+    --c2:      #76ff03;
+    --c3:      #ff6d00;
+    --c4:      #e040fb;
+    --c5:      #ffd600;
+    --dim:     #1a3040;
+    --text:    #8ab0c4;
+    --bright:  #d0ecff;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; user-select:none; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    overflow: hidden;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: 38px 1fr 28px;
+    grid-template-columns: 1fr 280px;
+  }
+
+  header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--border);
+    background: #020608;
+    gap: 14px;
+  }
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    color: var(--c1);
+    text-shadow: 0 0 16px #00e5ff66;
+    flex-shrink: 0;
+  }
+  .logo em { color: var(--c4); font-style: normal; }
+  .header-metrics {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
+  }
+  .hm { font-size: 9px; letter-spacing: 1px; color: var(--dim); }
+  .hm span { color: var(--c1); font-size: 11px; }
+  .header-btns { display: flex; gap: 8px; align-items: center; }
+  .btn-pill {
+    background: none;
+    border: 1px solid var(--dim);
+    color: var(--dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .btn-pill:hover { border-color: var(--c1); color: var(--c1); box-shadow: 0 0 8px #00e5ff33; }
+  .btn-pill.active { border-color: var(--c2); color: var(--c2); box-shadow: 0 0 10px #76ff0344; }
+  .btn-pill.mode-active { border-color: var(--c4); color: var(--c4); background: rgba(224,64,251,0.1); }
+
+  .canvas-area {
+    grid-column: 1;
+    grid-row: 2;
+    position: relative;
+    overflow: hidden;
+    background: #020608;
+  }
+  #canvas-membrane {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .membrane-hud {
+    position: absolute;
+    top: 8px; left: 10px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: rgba(0,229,255,0.45);
+    pointer-events: none;
+    line-height: 1.8;
+    z-index: 10;
+    background: rgba(2,6,8,0.5);
+    padding: 4px 8px;
+    border-radius: 4px;
+    backdrop-filter: blur(2px);
+  }
+  .mode-bar {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    background: rgba(2,6,8,0.6);
+    padding: 4px 10px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+    z-index: 20;
+  }
+
+  .sidebar {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+    background: var(--panel);
+    overflow-y: auto;
+    gap: 2px;
+  }
+  .sb-section {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sb-title {
+    font-size: 8px;
+    letter-spacing: 3px;
+    color: var(--dim);
+  }
+  .sb-title em { color: var(--c4); font-style: normal; }
+
+  .pitch-big {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--c1);
+    text-shadow: 0 0 18px #00e5ff88;
+    line-height: 1;
+  }
+  .pitch-hz { font-size: 10px; color: var(--c2); margin-top: 2px; }
+  .pitch-cents { font-size: 8px; color: var(--c3); }
+
+  .gauge { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 3px; }
+  .gauge-fill { height: 100%; border-radius: 2px; transition: width 0.05s; }
+
+  .mrow { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .ml { color: var(--dim); font-size: 9px; letter-spacing: 1px; flex-shrink:0; width: 60px; }
+  .mv { color: var(--bright); font-size: 10px; font-weight: 600; width: 42px; text-align:right; }
+  .mbar { flex:1; height: 2px; background: var(--border); border-radius:1px; overflow:hidden; }
+  .mbar-fill { height:100%; border-radius:1px; transition: width 0.05s; }
+
+  #canvas-eigen, #canvas-copula, #canvas-liss {
+    width: 100%;
+    display: block;
+    background: #020608;
+    border-radius: 2px;
+  }
+  #canvas-eigen { height: 80px; }
+  #canvas-copula { height: 60px; }
+  #canvas-liss { height: 100px; }
+
+  .note-log {
+    font-size: 8px;
+    color: var(--dim);
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+    line-height: 1.6;
+    max-height: 120px;
+  }
+  .note-log::-webkit-scrollbar { display: none; }
+  .log-e .ln { color: var(--c1); }
+  .log-e .lc { color: var(--c4); }
+  .log-e .lt { color: #0e1c28; }
+
+  footer {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 18px;
+    padding: 0 14px;
+    border-top: 1px solid var(--border);
+    background: #020608;
+    align-items: center;
+    font-size: 8px;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+  footer span { color: var(--c1); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">MEM<em>B</em>RANE</div>
+  <div class="header-metrics">
+    <div class="hm">NOTE <span id="hd-note">—</span></div>
+    <div class="hm">FREQ <span id="hd-freq">—</span></div>
+    <div class="hm">CONF <span id="hd-conf">0.00</span></div>
+    <div class="hm">HARM <span id="hd-harm">—</span></div>
+    <div class="hm">λ₁ <span id="hd-eigen">—</span></div>
+  </div>
+  <div class="header-btns">
+    <button class="btn-pill" id="btn-mic">🎤 MIC</button>
+  </div>
+</header>
+
+<div class="canvas-area">
+  <canvas id="canvas-membrane"></canvas>
+  <div class="membrane-hud">
+    <div>MEMBRANE · CLIFFORD + TORUS</div>
+    <div id="mhud-freq">f = — Hz</div>
+    <div id="mhud-mode">MODE: CLIFFORD</div>
+    <div id="mhud-eigen">λ₁=— λ₂=— λ₃=—</div>
+  </div>
+  <div class="mode-bar">
+    <button class="btn-pill" data-mode="clifford">🌀 CLIFFORD</button>
+    <button class="btn-pill" data-mode="torus">⨀ TORUS</button>
+    <button class="btn-pill" data-mode="chladni">◉ CHLADNI</button>
+    <button class="btn-pill" data-mode="water">💧 AGUA</button>
+    <button class="btn-pill" data-mode="lissajous">∞ LISSAJOUS</button>
+  </div>
+</div>
+
+<div class="sidebar">
+  <div class="sb-section">
+    <div class="sb-title">PITCH <em>· ACF</em></div>
+    <div class="pitch-big" id="sb-note">—</div>
+    <div class="pitch-hz" id="sb-freq">— Hz</div>
+    <div class="pitch-cents" id="sb-cents">± — ¢</div>
+    <div class="gauge"><div class="gauge-fill" id="conf-bar" style="width:0%;background:var(--c4)"></div></div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-title">SPECTRAL METRICS</div>
+    <div class="mrow"><div class="ml">CENTROID</div><div class="mbar"><div class="mbar-fill" id="mb-cent" style="background:var(--c1)"></div></div><div class="mv" id="mv-cent">—</div></div>
+    <div class="mrow"><div class="ml">FLUX</div><div class="mbar"><div class="mbar-fill" id="mb-flux" style="background:var(--c2)"></div></div><div class="mv" id="mv-flux">—</div></div>
+    <div class="mrow"><div class="ml">ENTROPY</div><div class="mbar"><div class="mbar-fill" id="mb-ent" style="background:var(--c3)"></div></div><div class="mv" id="mv-ent">—</div></div>
+    <div class="mrow"><div class="ml">FLATNESS</div><div class="mbar"><div class="mbar-fill" id="mb-flat" style="background:var(--c4)"></div></div><div class="mv" id="mv-flat">—</div></div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-title">AUTOVALORES <em>· PERSISTENCIA</em></div>
+    <canvas id="canvas-eigen"></canvas>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-title">HARMONIC LISSAJOUS</div>
+    <canvas id="canvas-liss"></canvas>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-title">CÓPULA <em>· dependencia</em></div>
+    <canvas id="canvas-copula"></canvas>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-title">EVENT LOG</div>
+    <div class="note-log" id="note-log"></div>
+  </div>
+</div>
+
+<footer>
+  <div>SR <span id="ft-sr">—</span></div>
+  <div>|</div>
+  <div>RMS <span id="ft-rms">—</span></div>
+  <div>|</div>
+  <div>FRAME <span id="ft-frame">0</span></div>
+  <div>|</div>
+  <div>MODE <span id="ft-mode">CLIFFORD</span></div>
+  <div>|</div>
+  <div>ARMONÍA <span id="ft-harm">—</span></div>
+</footer>
+
+<script>
+// ============================================================
+//  MEMBRANE · CLIFFORD + TORUS  (Corregido: Clifford nunca colapsa)
+//  Los parámetros del atractor se mantienen en zona caótica
+// ============================================================
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const FFT_SIZE = 4096;
+const HIST = 200;
+
+// --- Estado de audio ---
+let audioCtx, analyser, micStream;
+let running = false;
+let frameCount = 0;
+let prevMag = null;
+
+// --- Canvases ---
+const cMain = document.getElementById('canvas-membrane');
+const cEigen = document.getElementById('canvas-eigen');
+const cLiss = document.getElementById('canvas-liss');
+const cCopula = document.getElementById('canvas-copula');
+
+let ctxMain = cMain.getContext('2d');
+let ctxEigen = cEigen.getContext('2d');
+let ctxLiss = cLiss.getContext('2d');
+let ctxCopula = cCopula.getContext('2d');
+
+// --- Historiales ---
+let eigen1H = new Float32Array(HIST);
+let eigen2H = new Float32Array(HIST);
+let eigen3H = new Float32Array(HIST);
+let copH = new Float32Array(HIST);
+let confH = new Float32Array(HIST);
+
+// --- Valores actuales ---
+let curFreq = 0, curConf = 0, curRMS = 0;
+let curCentroid = 0, curFlux = 0, curEntropy = 0, curFlat = 0;
+let curEigen = [0.6, 0.3, 0.1];
+let curCopula = 0;
+let curHarmony = '—';
+let curNoteIdx = -1, curCents = 0;
+
+// --- Modo geometría ---
+let memMode = 'clifford';
+let memPhase = 0;
+let lissPhase = 0;
+
+// --- Parámetros de Clifford (rangos caóticos garantizados) ---
+let cliffordParams = { a: -1.7, b: 1.8, c: 1.0, d: -0.4 };
+let torusAmplitude = 1.0;
+let torusTwist = 0.5;
+let pointSizeScale = 1.0;
+
+// --- Agua ---
+let waterGrid, waterGridPrev, waterVel;
+const WATER_W = 100, WATER_H = 70;
+
+// --- Funciones auxiliares ---
+function resizeAll() {
+  const area = document.querySelector('.canvas-area');
+  if(area) {
+    cMain.width = area.clientWidth;
+    cMain.height = area.clientHeight;
+  } else {
+    cMain.width = window.innerWidth - 280;
+    cMain.height = window.innerHeight - 66;
+  }
+  [cEigen, cLiss, cCopula].forEach(c => {
+    const parent = c.parentElement;
+    let w = parent ? parent.clientWidth - 20 : 200;
+    w = Math.max(80, w);
+    c.width = w;
+    if(c === cEigen) c.height = 80;
+    if(c === cLiss) c.height = 100;
+    if(c === cCopula) c.height = 60;
+  });
+  if(memMode === 'water') initWater();
+}
+function initWater() {
+  waterGrid = new Float32Array(WATER_W * WATER_H);
+  waterGridPrev = new Float32Array(WATER_W * WATER_H);
+  waterVel = new Float32Array(WATER_W * WATER_H);
+}
+function wIdx(x,y) { return y * WATER_W + x; }
+function updateWater(rms, freq) {
+  if(!waterGrid) return;
+  const c = 0.22, damp = 0.98;
+  const cx = Math.floor(WATER_W/2);
+  const cy = Math.floor(WATER_H/2);
+  if(rms > 0.008) {
+    const amp = Math.min(rms * 30, 2.5);
+    waterGrid[wIdx(cx,cy)] += amp;
+    for(let h=1; h<=3; h++) {
+      const ang = memPhase * (h+1);
+      const xo = cx + Math.cos(ang) * 20;
+      const yo = cy + Math.sin(ang) * 20;
+      if(xo>0 && xo<WATER_W-1 && yo>0 && yo<WATER_H-1)
+        waterGrid[wIdx(Math.floor(xo), Math.floor(yo))] += amp * 0.5;
+    }
+  }
+  const next = new Float32Array(WATER_W * WATER_H);
+  for(let y=1; y<WATER_H-1; y++) {
+    for(let x=1; x<WATER_W-1; x++) {
+      const i = wIdx(x,y);
+      const lap = waterGrid[wIdx(x+1,y)] + waterGrid[wIdx(x-1,y)] +
+                  waterGrid[wIdx(x,y+1)] + waterGrid[wIdx(x,y-1)] - 4*waterGrid[i];
+      next[i] = (2*waterGrid[i] - waterGridPrev[i] + c*c*lap) * damp;
+    }
+  }
+  waterGridPrev.set(waterGrid);
+  waterGrid.set(next);
+}
+
+// --- Atractor de Clifford con reinicio si se estanca ---
+let cliffordX = 0.1, cliffordY = 0.1;
+let cliffordPointsCache = [];
+let lastCliffordSpread = 0;
+
+function cliffordPoints(n=4500, skip=100) {
+  const a = cliffordParams.a;
+  const b = cliffordParams.b;
+  const c = cliffordParams.c;
+  const d = cliffordParams.d;
+  let pts = [];
+  let x = cliffordX, y = cliffordY;
+  for(let i=0; i<n+skip; i++) {
+    let nx = Math.sin(a*y) + c*Math.cos(a*x);
+    let ny = Math.sin(b*x) + d*Math.cos(b*y);
+    x = nx; y = ny;
+    if(i>=skip) pts.push([x, y]);
+  }
+  // Guardar último estado para continuidad
+  cliffordX = x;
+  cliffordY = y;
+  // Calcular dispersión para detectar colapso
+  let cx=0,cy=0;
+  for(let p of pts) { cx+=p[0]; cy+=p[1]; }
+  cx /= pts.length;
+  cy /= pts.length;
+  let spread = 0;
+  for(let p of pts) spread += (p[0]-cx)**2 + (p[1]-cy)**2;
+  spread = Math.sqrt(spread / pts.length);
+  if(spread < 0.05 && pts.length > 100) {
+    // Reiniciar condiciones iniciales para escapar del punto fijo
+    cliffordX = (Math.random() - 0.5)*1.5;
+    cliffordY = (Math.random() - 0.5)*1.5;
+    // También forzar una pequeña perturbación en parámetros
+    cliffordParams.a += (Math.random() - 0.5)*0.2;
+    cliffordParams.b += (Math.random() - 0.5)*0.2;
+    console.log("Clifford reiniciado por baja dispersión");
+    return cliffordPoints(n, skip); // recursión una vez
+  }
+  return pts;
+}
+
+// --- Geodésica sobre toro ---
+function computeTorusGeodesic(p, q, R=1.2, r=0.5, steps=800) {
+  let pts = [];
+  for(let i=0; i<=steps; i++) {
+    let t = (i/steps) * Math.PI * 2 * 3;
+    let x = (R + r * Math.cos(q * t)) * Math.cos(p * t);
+    let y = (R + r * Math.cos(q * t)) * Math.sin(p * t);
+    let z = r * Math.sin(q * t);
+    pts.push([x*0.9, y*0.9, z*0.9]);
+  }
+  return pts;
+}
+
+// --- Actualización estable de parámetros de Clifford (siempre caótico)---
+function updateCliffordFromMetrics() {
+  // Mapeamos eigenvalores a rangos clásicos caóticos conocidos
+  // Rangos típicos para Clifford: a ~ -1.5 a -2.0, b ~ 1.5 a 2.0, c ~ 0.5 a 1.5, d ~ -1.0 a 0.0
+  const e1 = Math.min(0.9, Math.max(0.1, curEigen[0] || 0.5));
+  const e2 = Math.min(0.9, Math.max(0.1, curEigen[1] || 0.3));
+  const e3 = Math.min(0.9, Math.max(0.1, curEigen[2] || 0.2));
+  // Usamos también la entropía y flatness para modular
+  const ent = Math.min(0.9, curEntropy);
+  const flat = Math.min(0.9, curFlat);
+  
+  cliffordParams.a = -1.5 - (e1 * 0.6) - ent * 0.2;
+  cliffordParams.b = 1.5 + (e2 * 0.6) + flat * 0.3;
+  cliffordParams.c = 0.7 + (e3 * 0.8) + (1-flat)*0.4;
+  cliffordParams.d = -0.8 + (curCopula * 0.6) - ent * 0.3;
+  
+  // Limitar a rangos razonables
+  cliffordParams.a = Math.min(-1.2, Math.max(-2.2, cliffordParams.a));
+  cliffordParams.b = Math.min(2.2, Math.max(1.2, cliffordParams.b));
+  cliffordParams.c = Math.min(1.6, Math.max(0.5, cliffordParams.c));
+  cliffordParams.d = Math.min(0.2, Math.max(-1.2, cliffordParams.d));
+  
+  torusAmplitude = 0.8 + curConf * 0.8;
+  torusTwist = 1 + curCopula * 2;
+  pointSizeScale = 0.8 + curRMS * 5;
+}
+
+// --- Procesamiento de audio y métricas (igual que antes) ---
+function detectPitch(timeDomain, sr) {
+  const N = timeDomain.length;
+  let rms = 0;
+  for(let i=0;i<N;i++) rms += timeDomain[i]*timeDomain[i];
+  rms = Math.sqrt(rms/N);
+  if(rms < 0.006) return {freq:0, confidence:0, rms};
+  const minLag = Math.floor(sr / 1200);
+  const maxLag = Math.floor(sr / 60);
+  let bestLag = -1, bestVal = -Infinity;
+  for(let lag=minLag; lag<maxLag; lag++) {
+    let s=0;
+    for(let i=0; i<N-lag; i++) s += timeDomain[i]*timeDomain[i+lag];
+    if(s > bestVal) { bestVal=s; bestLag=lag; }
+  }
+  if(bestLag<0) return {freq:0, confidence:0, rms};
+  const y0 = (bestLag>0) ? (()=>{let s=0;for(let i=0;i<N-bestLag+1;i++)s+=timeDomain[i]*timeDomain[i+bestLag-1];return s;})() : 0;
+  const y1 = bestVal;
+  const y2 = (()=>{let s=0;for(let i=0;i<N-bestLag-1;i++)s+=timeDomain[i]*timeDomain[i+bestLag+1];return s;})();
+  const d = 2*(2*y1 - y0 - y2);
+  let rl = bestLag;
+  if(d !== 0) rl = bestLag + (y0 - y2)/d;
+  const freq = sr / rl;
+  const r0 = (()=>{let s=0;for(let i=0;i<N;i++)s+=timeDomain[i]*timeDomain[i];return s;})();
+  const confidence = r0>0 ? Math.min(1, bestVal/r0) : 0;
+  return {freq, confidence, rms};
+}
+
+function spectralCentroid(mag, sr, fftSize) {
+  let num=0, den=0;
+  for(let k=0; k<mag.length; k++) {
+    const f = k * sr / fftSize;
+    const val = mag[k] * mag[k];
+    num += f * val;
+    den += val;
+  }
+  return den>0 ? num/den : 0;
+}
+function spectralFlatness(mag) {
+  let geo=0, arith=0;
+  for(let k=0; k<mag.length; k++) {
+    const m = Math.max(mag[k], 1e-12);
+    geo += Math.log(m);
+    arith += m;
+  }
+  const N = mag.length;
+  return Math.exp(geo/N) / (arith/N + 1e-12);
+}
+function spectralFlux(mag, prev) {
+  if(!prev) return 0;
+  let flux=0;
+  for(let k=0; k<mag.length; k++) flux += Math.max(0, mag[k]-prev[k]);
+  return flux;
+}
+function shannonEntropy(mag) {
+  let sum=0;
+  for(let k=0; k<mag.length; k++) sum += mag[k];
+  if(sum<1e-12) return 0;
+  let ent=0;
+  for(let k=0; k<mag.length; k++) {
+    const p = mag[k]/sum;
+    if(p>0) ent -= p * Math.log2(p);
+  }
+  return ent / Math.log2(mag.length+1);
+}
+function computeEigenvaluesFromSpectrum(mag) {
+  const bands = 6;
+  const bandSize = Math.floor(mag.length / bands);
+  let bandEn = new Array(bands).fill(0);
+  for(let b=0; b<bands; b++) {
+    for(let k=0; k<bandSize; k++) bandEn[b] += mag[b*bandSize + k] || 0;
+    bandEn[b] /= bandSize;
+  }
+  const total = bandEn.reduce((a,b)=>a+b, 1e-9);
+  const sorted = [...bandEn].sort((a,b)=>b-a);
+  return [sorted[0]/total, sorted[1]/total, sorted[2]/total];
+}
+function freqToNote(freq) {
+  if(freq<50) return {note:-1, cents:0, name:'—'};
+  const midi = 69 + 12 * Math.log2(freq/440);
+  const r = Math.round(midi);
+  const cents = (midi - r)*100;
+  const name = NOTE_NAMES[((r%12)+12)%12] + Math.floor(r/12 - 1);
+  return {note: ((r%12)+12)%12, cents, name};
+}
+function detectHarmony(noteAmps) {
+  const active = noteAmps.map((a,i)=>({a,i})).filter(x=>x.a>0.15).sort((a,b)=>b.a-a.a);
+  if(active.length<2) return '—';
+  const interval = (active[1].i - active[0].i + 12) % 12;
+  const intervals = ['P1','m2','M2','m3','M3','P4','TT','P5','m6','M6','m7','M7'];
+  return intervals[interval] || '?';
+}
+
+// --- DIBUJADO DE CADA MODO (Clifford mejorado)---
+function drawClifford() {
+  const w = cMain.width, h = cMain.height;
+  if(w<10 || h<10) return;
+  ctxMain.fillStyle = '#020608';
+  ctxMain.fillRect(0,0,w,h);
+  
+  const pts = cliffordPoints(4500, 150);
+  if(pts.length === 0) return;
+  
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  for(let p of pts) {
+    minX = Math.min(minX, p[0]);
+    maxX = Math.max(maxX, p[0]);
+    minY = Math.min(minY, p[1]);
+    maxY = Math.max(maxY, p[1]);
+  }
+  const rangeX = maxX - minX;
+  const rangeY = maxY - minY;
+  if(rangeX < 1e-6 && rangeY < 1e-6) {
+    // caída extrema, usar rango por defecto
+    minX = -1.5; maxX = 1.5; minY = -1.5; maxY = 1.5;
+  }
+  const scaleX = w / (rangeX + 0.2);
+  const scaleY = h / (rangeY + 0.2);
+  const offsetX = w/2 - (minX+maxX)/2 * scaleX;
+  const offsetY = h/2 - (minY+maxY)/2 * scaleY;
+  
+  const size = Math.max(1, Math.min(3, 1.5 + curRMS * 6));
+  for(let i=0; i<pts.length; i++) {
+    const x = pts[i][0] * scaleX + offsetX;
+    const y = pts[i][1] * scaleY + offsetY;
+    if(x>=0 && x<w && y>=0 && y<h) {
+      const alpha = 0.4 + curEigen[0] * 0.5;
+      ctxMain.fillStyle = `rgba(0,229,255,${alpha})`;
+      ctxMain.fillRect(x, y, size, size);
+    }
+  }
+}
+
+function drawTorus() {
+  const w = cMain.width, h = cMain.height;
+  ctxMain.fillStyle = '#020608';
+  ctxMain.fillRect(0,0,w,h);
+  let p = Math.max(1, Math.floor(2 + curEigen[0] * 5));
+  let q = Math.max(1, Math.floor(1 + curEigen[1] * 6));
+  const geodesic = computeTorusGeodesic(p, q, 1.2, 0.5 + curCopula*0.4);
+  const scale = Math.min(w,h) * 0.4;
+  const cx = w/2, cy = h/2;
+  const angle = memPhase * 0.2;
+  const cosA = Math.cos(angle), sinA = Math.sin(angle);
+  for(let i=0; i<geodesic.length-1; i++) {
+    const p1 = geodesic[i], p2 = geodesic[i+1];
+    const rotX1 = p1[0]*cosA - p1[2]*sinA;
+    const rotZ1 = p1[0]*sinA + p1[2]*cosA;
+    const x1 = cx + rotX1 * scale;
+    const y1 = cy - p1[1] * scale * 0.8 + rotZ1 * scale * 0.3;
+    const rotX2 = p2[0]*cosA - p2[2]*sinA;
+    const rotZ2 = p2[0]*sinA + p2[2]*cosA;
+    const x2 = cx + rotX2 * scale;
+    const y2 = cy - p2[1] * scale * 0.8 + rotZ2 * scale * 0.3;
+    const hue = (p*30 + q*20 + frameCount) % 360;
+    ctxMain.strokeStyle = `hsla(${hue}, 80%, 60%, ${0.4 + curConf*0.5})`;
+    ctxMain.lineWidth = 1.2 + curRMS * 3;
+    ctxMain.beginPath();
+    ctxMain.moveTo(x1,y1);
+    ctxMain.lineTo(x2,y2);
+    ctxMain.stroke();
+  }
+  for(let i=0; i<geodesic.length; i+=20) {
+    const p = geodesic[i];
+    const rotX = p[0]*cosA - p[2]*sinA;
+    const rotZ = p[0]*sinA + p[2]*cosA;
+    const x = cx + rotX * scale;
+    const y = cy - p[1] * scale * 0.8 + rotZ * scale * 0.3;
+    ctxMain.fillStyle = `rgba(224,64,251,${0.7})`;
+    ctxMain.beginPath();
+    ctxMain.arc(x, y, 2 + curRMS*3, 0, Math.PI*2);
+    ctxMain.fill();
+  }
+}
+
+function drawChladni() {
+  const w = cMain.width, h = cMain.height;
+  ctxMain.fillStyle = 'rgba(2,6,8,0.08)';
+  ctxMain.fillRect(0,0,w,h);
+  const f = curFreq > 50 ? curFreq : 220;
+  const m = Math.max(1, Math.round(f/200));
+  const n = Math.max(1, Math.round(f/300));
+  const step = 4;
+  for(let y=0; y<h; y+=step) {
+    for(let x=0; x<w; x+=step) {
+      const nx = (x/w - 0.5)*2;
+      const ny = (y/h - 0.5)*2;
+      let val = Math.sin(m * Math.PI * nx) * Math.cos(n * Math.PI * ny) - Math.cos(m * Math.PI * nx) * Math.sin(n * Math.PI * ny);
+      if(Math.abs(val) < 0.08 + (1-curConf)*0.12) {
+        const brightness = 0.2 + curRMS * 5;
+        ctxMain.fillStyle = `hsla(${curFreq%360}, 70%, 55%, ${brightness*0.7})`;
+        ctxMain.fillRect(x,y,step,step);
+      }
+    }
+  }
+  const cx = w/2, cy = h/2;
+  for(let r=1; r<=5; r++) {
+    const rad = (r/6) * Math.min(w,h)*0.45;
+    ctxMain.strokeStyle = `rgba(0,229,255,${0.1 + curConf*0.2})`;
+    ctxMain.lineWidth = 0.5;
+    ctxMain.beginPath();
+    ctxMain.arc(cx,cy,rad + Math.sin(memPhase*2)*3,0,Math.PI*2);
+    ctxMain.stroke();
+  }
+}
+
+function drawWater() {
+  if(!waterGrid) initWater();
+  updateWater(curRMS, curFreq);
+  const w = cMain.width, h = cMain.height;
+  const sx = w / WATER_W, sy = h / WATER_H;
+  ctxMain.fillStyle = '#020608';
+  ctxMain.fillRect(0,0,w,h);
+  for(let y=0; y<WATER_H-1; y++) {
+    for(let x=0; x<WATER_W-1; x++) {
+      const v = waterGrid[wIdx(x,y)];
+      const intens = Math.min(0.8, Math.abs(v)*0.6);
+      const r = v>0 ? 20 + intens*80 : 0;
+      const g = v>0 ? 100 + intens*100 : 0;
+      const b = v>0 ? 180 + intens*75 : 40 + intens*40;
+      const a = intens * 0.6;
+      ctxMain.fillStyle = `rgba(${r},${g},${b},${a})`;
+      ctxMain.fillRect(x*sx, y*sy, sx+1, sy+1);
+    }
+  }
+  const cx = w/2, cy = h/2;
+  for(let r=1; r<=4; r++) {
+    const rad = (r/5) * Math.min(w,h)*0.45;
+    ctxMain.strokeStyle = `rgba(0,229,255,0.2)`;
+    ctxMain.lineWidth = 1;
+    ctxMain.beginPath();
+    ctxMain.arc(cx,cy,rad,0,Math.PI*2);
+    ctxMain.stroke();
+  }
+}
+
+function drawLissajous() {
+  const w = cMain.width, h = cMain.height;
+  ctxMain.fillStyle = 'rgba(2,6,8,0.1)';
+  ctxMain.fillRect(0,0,w,h);
+  const cx = w/2, cy = h/2;
+  const R = Math.min(w,h)*0.4;
+  const a = Math.max(1, Math.floor(1 + curEigen[0]*5));
+  const b = Math.max(1, Math.floor(1 + curEigen[1]*6));
+  const steps = 800;
+  const phase = lissPhase;
+  ctxMain.beginPath();
+  for(let i=0;i<=steps;i++) {
+    const t = (i/steps)*Math.PI*2*Math.max(a,b);
+    const x = cx + R*Math.sin(a*t + phase);
+    const y = cy + R*Math.sin(b*t);
+    if(i===0) ctxMain.moveTo(x,y);
+    else ctxMain.lineTo(x,y);
+  }
+  ctxMain.strokeStyle = `hsl(${curFreq%360}, 80%, 60%)`;
+  ctxMain.lineWidth = 1.2 + curRMS*3;
+  ctxMain.stroke();
+  ctxMain.strokeStyle = `rgba(0,229,255,0.2)`;
+  ctxMain.beginPath();
+  ctxMain.arc(cx,cy,R,0,Math.PI*2);
+  ctxMain.stroke();
+}
+
+// --- Sidebars (sin cambios sustanciales) ---
+function drawEigenCanvas() {
+  const w = cEigen.width, h = cEigen.height;
+  if(w<10 || h<10) return;
+  ctxEigen.clearRect(0,0,w,h);
+  const step = w / HIST;
+  ctxEigen.beginPath();
+  ctxEigen.strokeStyle = '#00e5ff';
+  ctxEigen.lineWidth = 1.5;
+  for(let i=0;i<HIST;i++) {
+    const x = i*step;
+    const y = h - eigen1H[i]*(h-6) - 3;
+    if(i===0) ctxEigen.moveTo(x,y);
+    else ctxEigen.lineTo(x,y);
+  }
+  ctxEigen.stroke();
+  ctxEigen.beginPath();
+  ctxEigen.strokeStyle = '#76ff03cc';
+  for(let i=0;i<HIST;i++) {
+    const x = i*step;
+    const y = h - eigen2H[i]*(h-6) - 3;
+    if(i===0) ctxEigen.moveTo(x,y);
+    else ctxEigen.lineTo(x,y);
+  }
+  ctxEigen.stroke();
+  for(let i=0;i<HIST;i++) {
+    const bh = eigen3H[i]*(h-6);
+    ctxEigen.fillStyle = `rgba(224,64,251,${0.3+eigen3H[i]*0.5})`;
+    ctxEigen.fillRect(i*step, h-bh, step, bh);
+  }
+  ctxEigen.fillStyle = '#1a3040';
+  ctxEigen.font = '7px JetBrains Mono';
+  ctxEigen.fillText('λ₁',2,10);
+  ctxEigen.fillText(curEigen[0].toFixed(3), w-40,10);
+}
+function drawLissMini() {
+  const w = cLiss.width, h = cLiss.height;
+  if(w<10 || h<10) return;
+  ctxLiss.fillStyle = '#020608';
+  ctxLiss.fillRect(0,0,w,h);
+  const cx = w/2, cy = h/2;
+  const R = Math.min(w,h)*0.4;
+  const a = Math.max(1, Math.floor(1 + curEigen[0]*4));
+  const b = Math.max(1, Math.floor(1 + curEigen[1]*5));
+  ctxLiss.beginPath();
+  for(let i=0;i<=800;i++) {
+    const t = (i/800)*Math.PI*2*Math.max(a,b);
+    const x = cx + R*Math.sin(a*t + lissPhase);
+    const y = cy + R*Math.sin(b*t);
+    if(i===0) ctxLiss.moveTo(x,y);
+    else ctxLiss.lineTo(x,y);
+  }
+  ctxLiss.strokeStyle = `hsl(${curFreq%360},80%,60%)`;
+  ctxLiss.lineWidth = 1;
+  ctxLiss.stroke();
+  ctxLiss.fillStyle = '#1a3040';
+  ctxLiss.font = '7px monospace';
+  ctxLiss.fillText(`${a}:${b}`,4,h-6);
+}
+function drawCopulaCanvas() {
+  const w = cCopula.width, h = cCopula.height;
+  if(w<10 || h<10) return;
+  ctxCopula.clearRect(0,0,w,h);
+  const step = w / HIST;
+  for(let i=0;i<HIST;i++) {
+    ctxCopula.fillStyle = `rgba(224,64,251,${confH[i]*0.07})`;
+    ctxCopula.fillRect(i*step,0,step,h);
+  }
+  ctxCopula.beginPath();
+  ctxCopula.strokeStyle = '#e040fb';
+  for(let i=0;i<HIST;i++) {
+    const x = i*step;
+    const y = h - copH[i]*(h-4) - 2;
+    if(i===0) ctxCopula.moveTo(x,y);
+    else ctxCopula.lineTo(x,y);
+  }
+  ctxCopula.stroke();
+  const last = copH[HIST-1];
+  ctxCopula.fillStyle = '#e040fb';
+  ctxCopula.fillRect(w-6, h-last*(h-4)-3, 4, 4);
+}
+
+function updateUIs() {
+  const noteObj = freqToNote(curFreq);
+  const noteName = noteObj.name;
+  curNoteIdx = noteObj.note;
+  curCents = noteObj.cents;
+  document.getElementById('hd-note').innerText = noteName;
+  document.getElementById('hd-freq').innerHTML = curFreq>50 ? curFreq.toFixed(1)+'Hz' : '—';
+  document.getElementById('hd-conf').innerHTML = curConf.toFixed(2);
+  document.getElementById('hd-harm').innerHTML = curHarmony;
+  document.getElementById('hd-eigen').innerHTML = curEigen[0].toFixed(3);
+  document.getElementById('sb-note').innerText = noteName;
+  document.getElementById('sb-freq').innerHTML = curFreq>50 ? curFreq.toFixed(1)+' Hz' : '— Hz';
+  document.getElementById('sb-cents').innerHTML = curFreq>50 ? `${curCents>0?'+':''}${curCents.toFixed(1)}¢` : '± — ¢';
+  document.getElementById('conf-bar').style.width = (curConf*100)+'%';
+  const maxCent = 5000;
+  document.getElementById('mb-cent').style.width = Math.min(100, (curCentroid/maxCent)*100)+'%';
+  document.getElementById('mv-cent').innerHTML = curCentroid>0 ? Math.round(curCentroid) : '—';
+  document.getElementById('mb-flux').style.width = Math.min(100, curFlux*200)+'%';
+  document.getElementById('mv-flux').innerHTML = curFlux.toFixed(3);
+  document.getElementById('mb-ent').style.width = (curEntropy*100)+'%';
+  document.getElementById('mv-ent').innerHTML = curEntropy.toFixed(3);
+  document.getElementById('mb-flat').style.width = (curFlat*100)+'%';
+  document.getElementById('mv-flat').innerHTML = curFlat.toFixed(3);
+  document.getElementById('mhud-freq').innerHTML = `f = ${curFreq>50?curFreq.toFixed(1):'—'} Hz`;
+  document.getElementById('mhud-eigen').innerHTML = `λ₁=${curEigen[0].toFixed(3)} λ₂=${curEigen[1].toFixed(3)} λ₃=${curEigen[2].toFixed(3)}`;
+  document.getElementById('ft-rms').innerHTML = (curRMS*100).toFixed(1)+'%';
+  document.getElementById('ft-frame').innerHTML = frameCount;
+  document.getElementById('ft-harm').innerHTML = curHarmony;
+  document.getElementById('ft-sr').innerHTML = audioCtx ? audioCtx.sampleRate : '—';
+  
+  if(noteName !== lastLoggedNote && curConf>0.35 && Date.now()-lastLogTime>500) {
+    lastLoggedNote = noteName;
+    lastLogTime = Date.now();
+    const logDiv = document.getElementById('note-log');
+    const entry = document.createElement('div');
+    entry.className = 'log-e';
+    entry.innerHTML = `<span class="lt">${new Date().toISOString().substr(11,8)}</span> <span class="ln">${noteName}</span> <span class="lc">λ₁=${curEigen[0].toFixed(2)}</span>`;
+    logDiv.prepend(entry);
+    if(logDiv.children.length>30) logDiv.removeChild(logDiv.lastChild);
+  }
+}
+
+let lastLoggedNote = '';
+let lastLogTime = 0;
+
+// --- LOOP PRINCIPAL ---
+function mainLoop() {
+  if(running && analyser && audioCtx) {
+    const timeData = new Float32Array(analyser.fftSize);
+    const freqByte = new Uint8Array(analyser.frequencyBinCount);
+    const magData = new Float32Array(analyser.frequencyBinCount);
+    analyser.getFloatTimeDomainData(timeData);
+    analyser.getByteFrequencyData(freqByte);
+    for(let i=0;i<magData.length;i++) magData[i]=freqByte[i]/255;
+    
+    const pitch = detectPitch(timeData, audioCtx.sampleRate);
+    curFreq = pitch.freq;
+    curConf = pitch.confidence;
+    curRMS = pitch.rms;
+    curCentroid = spectralCentroid(magData, audioCtx.sampleRate, analyser.fftSize);
+    curFlat = spectralFlatness(magData);
+    curFlux = spectralFlux(magData, prevMag);
+    curEntropy = shannonEntropy(magData);
+    if(prevMag) prevMag = magData.slice();
+    else prevMag = new Float32Array(magData);
+    
+    curEigen = computeEigenvaluesFromSpectrum(magData);
+    curCopula = (curConf + (1-curFlat) + (1-curEntropy)) / 3;
+    
+    const noteAmps = new Array(12).fill(0);
+    for(let k=1; k<magData.length; k++) {
+      const f = k * audioCtx.sampleRate / analyser.fftSize;
+      if(f<60 || f>4000) continue;
+      const midi = 69+12*Math.log2(f/440);
+      const n = ((Math.round(midi)%12)+12)%12;
+      noteAmps[n] += magData[k];
+    }
+    const maxAmp = Math.max(...noteAmps, 1e-6);
+    for(let i=0;i<12;i++) noteAmps[i]/=maxAmp;
+    curHarmony = detectHarmony(noteAmps);
+    
+    eigen1H.copyWithin(0,1); eigen1H[HIST-1] = curEigen[0];
+    eigen2H.copyWithin(0,1); eigen2H[HIST-1] = curEigen[1];
+    eigen3H.copyWithin(0,1); eigen3H[HIST-1] = curEigen[2];
+    copH.copyWithin(0,1);    copH[HIST-1] = curCopula;
+    confH.copyWithin(0,1);   confH[HIST-1] = curConf;
+    
+    updateCliffordFromMetrics();
+  } else {
+    // Modo idle: datos sintéticos suaves pero siempre con movimiento
+    const t = performance.now() / 1000;
+    curFreq = 220 + Math.sin(t*0.7)*60;
+    curConf = 0.5 + Math.sin(t*1.2)*0.3;
+    curRMS = 0.15 + Math.sin(t*2)*0.1;
+    curCentroid = 1200 + Math.sin(t)*800;
+    curFlat = 0.4 + Math.sin(t*0.5)*0.2;
+    curFlux = 0.15 + Math.sin(t*1.8)*0.1;
+    curEntropy = 0.5 + Math.sin(t*0.9)*0.2;
+    curEigen = [0.5+Math.sin(t)*0.3, 0.3+Math.cos(t*1.3)*0.2, 0.1+Math.sin(t*2.2)*0.1];
+    curCopula = 0.5 + Math.sin(t)*0.3;
+    curHarmony = '—';
+    eigen1H.copyWithin(0,1); eigen1H[HIST-1] = curEigen[0];
+    eigen2H.copyWithin(0,1); eigen2H[HIST-1] = curEigen[1];
+    eigen3H.copyWithin(0,1); eigen3H[HIST-1] = curEigen[2];
+    copH.copyWithin(0,1);    copH[HIST-1] = curCopula;
+    confH.copyWithin(0,1);   confH[HIST-1] = curConf;
+    updateCliffordFromMetrics();
+  }
+  
+  memPhase += 0.02 + curRMS * 0.3;
+  lissPhase += 0.01 + curConf * 0.05;
+  
+  switch(memMode) {
+    case 'clifford': drawClifford(); break;
+    case 'torus': drawTorus(); break;
+    case 'chladni': drawChladni(); break;
+    case 'water': drawWater(); break;
+    case 'lissajous': drawLissajous(); break;
+    default: drawClifford();
+  }
+  
+  drawEigenCanvas();
+  drawLissMini();
+  drawCopulaCanvas();
+  updateUIs();
+  
+  frameCount++;
+  requestAnimationFrame(mainLoop);
+}
+
+// --- MIC control ---
+document.getElementById('btn-mic').addEventListener('click', async () => {
+  if(running) {
+    running = false;
+    if(micStream) micStream.getTracks().forEach(t=>t.stop());
+    document.getElementById('btn-mic').classList.remove('active');
+    document.getElementById('btn-mic').innerHTML = '🎤 MIC';
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:false, noiseSuppression:false, autoGainControl:false } });
+    micStream = stream;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = FFT_SIZE;
+    analyser.smoothingTimeConstant = 0.7;
+    const src = audioCtx.createMediaStreamSource(stream);
+    src.connect(analyser);
+    running = true;
+    document.getElementById('btn-mic').classList.add('active');
+    document.getElementById('btn-mic').innerHTML = '🔴 STOP';
+  } catch(e) {
+    alert('Error al acceder al micrófono: ' + e.message);
+  }
+});
+
+// --- Cambio de modo ---
+document.querySelectorAll('.mode-bar .btn-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.getAttribute('data-mode');
+    if(mode) {
+      memMode = mode;
+      document.getElementById('mhud-mode').innerHTML = 'MODE: ' + mode.toUpperCase();
+      document.getElementById('ft-mode').innerHTML = mode.toUpperCase();
+      document.querySelectorAll('.mode-bar .btn-pill').forEach(b => b.classList.remove('mode-active'));
+      btn.classList.add('mode-active');
+      if(mode === 'water') initWater();
+    }
+  });
+});
+
+// --- Atajos de teclado ---
+window.addEventListener('keydown', (e) => {
+  const key = e.key;
+  if(key === '1') memMode = 'clifford';
+  else if(key === '2') memMode = 'torus';
+  else if(key === '3') memMode = 'chladni';
+  else if(key === '4') memMode = 'water';
+  else if(key === '5') memMode = 'lissajous';
+  else return;
+  document.getElementById('mhud-mode').innerHTML = 'MODE: ' + memMode.toUpperCase();
+  document.getElementById('ft-mode').innerHTML = memMode.toUpperCase();
+  document.querySelectorAll('.mode-bar .btn-pill').forEach(b => b.classList.remove('mode-active'));
+  const activeBtn = document.querySelector(`.mode-bar .btn-pill[data-mode="${memMode}"]`);
+  if(activeBtn) activeBtn.classList.add('mode-active');
+  if(memMode === 'water') initWater();
+});
+
+// --- Inicialización ---
+window.addEventListener('resize', () => { resizeAll(); });
+resizeAll();
+initWater();
+for(let i=0;i<HIST;i++) {
+  eigen1H[i]=0.5; eigen2H[i]=0.2; eigen3H[i]=0.1; copH[i]=0.3; confH[i]=0.2;
+}
+mainLoop();
+</script>
+</body>
+</html>

@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>GUETA RYTHM · Análisis Estocástico · Datos biológicos / caóticos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg:      #04080c;
+    --panel:   #060c10;
+    --border:  #0f1e2a;
+    --c1:      #00e5ff;
+    --c2:      #76ff03;
+    --c3:      #ff6d00;
+    --c4:      #e040fb;
+    --c5:      #ffd600;
+    --dim:     #1a3040;
+    --text:    #8ab0c4;
+    --bright:  #d0ecff;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; user-select:none; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    overflow: hidden;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: 48px 1fr 28px;
+    grid-template-columns: 280px 1fr 260px;
+  }
+
+  /* HEADER */
+  header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--border);
+    background: #020608;
+    gap: 14px;
+  }
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    color: var(--c1);
+    text-shadow: 0 0 16px #00e5ff66;
+    flex-shrink: 0;
+  }
+  .logo em { color: var(--c4); font-style: normal; }
+  .dataset-selector { display: flex; gap: 8px; align-items: center; background: var(--panel); padding: 4px 10px; border-radius: 20px; }
+  .dataset-selector select { background: #020608; border: 1px solid var(--dim); color: var(--c1); font-family: monospace; font-size: 9px; padding: 4px 8px; border-radius: 12px; }
+  .btn-pill {
+    background: none;
+    border: 1px solid var(--dim);
+    color: var(--dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .btn-pill:hover { border-color: var(--c1); color: var(--c1); box-shadow: 0 0 8px #00e5ff33; }
+  .btn-pill.active { border-color: var(--c2); color: var(--c2); }
+  .btn-pill.mode-active { border-color: var(--c4); color: var(--c4); background: rgba(224,64,251,0.1); }
+
+  /* LEFT PANEL */
+  .left {
+    grid-row: 2;
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+    overflow-y: auto;
+    gap: 8px;
+    padding: 8px;
+  }
+  .card {
+    background: rgba(2,6,8,0.6);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+  }
+  .card-title {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--c4);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slider-row { margin: 6px 0; }
+  .slider-row label { font-size: 8px; color: var(--dim); display: block; }
+  input[type=range] { width: 100%; background: var(--bg); accent-color: var(--c1); }
+  #heatmap-canvas, #copula-canvas {
+    width: 100%;
+    background: #020608;
+    border-radius: 4px;
+    margin-top: 4px;
+  }
+  #heatmap-canvas { height: 180px; }
+  #copula-canvas { height: 140px; }
+
+  /* CENTER CANVAS */
+  .center {
+    grid-row: 2;
+    grid-column: 2;
+    position: relative;
+    background: #020608;
+    overflow: hidden;
+  }
+  #canvas-membrane {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .membrane-hud {
+    position: absolute;
+    top: 8px; left: 10px;
+    font-size: 9px;
+    background: rgba(2,6,8,0.6);
+    padding: 4px 8px;
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+  }
+  .mode-bar {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    background: rgba(2,6,8,0.7);
+    padding: 4px 10px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+    z-index: 20;
+  }
+
+  /* RIGHT PANEL */
+  .right {
+    grid-row: 2;
+    grid-column: 3;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+    background: var(--panel);
+    overflow-y: auto;
+    gap: 6px;
+    padding: 8px;
+  }
+  .metric-row { display: flex; justify-content: space-between; font-size: 9px; margin: 2px 0; }
+  .gauge { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 4px 0; }
+  .gauge-fill { height: 100%; background: var(--c2); width: 0%; }
+  canvas.eigen-canvas, canvas.pers-canvas { width: 100%; height: 70px; background: #020608; border-radius: 4px; margin-top: 4px; }
+  .knob-row { display: flex; gap: 10px; justify-content: space-between; margin: 6px 0; }
+  .knob { text-align: center; }
+  .knob canvas { width: 36px; height: 36px; cursor: pointer; }
+  .knob span { font-size: 7px; display: block; }
+
+  footer {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 18px;
+    padding: 0 14px;
+    border-top: 1px solid var(--border);
+    background: #020608;
+    align-items: center;
+    font-size: 8px;
+    color: var(--dim);
+  }
+  footer span { color: var(--c1); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">GUE<em>TA </em>RYTHM · <span style="font-size:8px">ESTOCÁSTICO MULTIVARIADO</span></div>
+  <div class="dataset-selector">
+    <span style="color:var(--dim)">📊 DATASET</span>
+    <select id="ds-select">
+      <option value="diversity">🌿 Diversidad biológica (5 vars)</option>
+      <option value="population">🐾 Fluctuaciones poblacionales</option>
+      <option value="climate">🌡️ Proxies climáticos (leptocúrtico)</option>
+      <option value="synthetic">⚡ Sintético caótico</option>
+    </select>
+    <button id="btn-reload" class="btn-pill">⟳ CARGAR</button>
+  </div>
+  <div>
+    <button id="btn-play" class="btn-pill">▶ SONAR</button>
+    <button id="btn-stop" class="btn-pill">■ STOP</button>
+  </div>
+</header>
+
+<div class="left">
+  <div class="card">
+    <div class="card-title">⏱️ VENTANA TEMPORAL</div>
+    <div class="slider-row"><label>W (tamaño) <span id="w-val">40</span></label><input type="range" id="sl-w" min="10" max="200" value="40"></div>
+    <div class="slider-row"><label>t₀ (desplazamiento) <span id="t0-val">0</span></label><input type="range" id="sl-t0" min="0" max="200" value="0"></div>
+    <div id="time-range" style="font-size:8px;color:var(--dim);margin-top:4px">—</div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔥 MAPA DE CALOR · CORRELACIÓN</div>
+    <canvas id="heatmap-canvas" width="260" height="180"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">📈 CÓPULA · DEPENDENCIA BIVARIADA</div>
+    <canvas id="copula-canvas" width="260" height="140"></canvas>
+    <div style="font-size:7px;color:var(--dim);text-align:center;">Par variable: λ₁ vs λ₂ (momentos)</div>
+  </div>
+</div>
+
+<div class="center">
+  <canvas id="canvas-membrane"></canvas>
+  <div class="membrane-hud" id="mhud">
+    <div>MODO: <span id="mode-name">CLIFFORD</span> · λ₁=<span id="hud-l1">—</span> H=<span id="hud-ent">—</span></div>
+    <div>frecuencia base: <span id="hud-freq">—</span> Hz</div>
+  </div>
+  <div class="mode-bar">
+    <button class="btn-pill mode-active" data-mode="clifford">🌀 CLIFFORD</button>
+    <button class="btn-pill" data-mode="torus">⨀ TORO</button>
+    <button class="btn-pill" data-mode="lissajous">∞ LISSAJOUS</button>
+  </div>
+</div>
+
+<div class="right">
+  <div class="card">
+    <div class="card-title">🎵 SINTETIZADOR ARMÓNICO</div>
+    <div class="knob-row">
+      <div class="knob"><canvas id="knob-base" data-id="base" data-min="40" data-max="400" data-val="80"></canvas><span>BASE Hz</span><span id="k-base">80</span></div>
+      <div class="knob"><canvas id="knob-reverb" data-id="reverb" data-min="0" data-max="1" data-val="0.35"></canvas><span>REVERB</span><span id="k-reverb">0.35</span></div>
+      <div class="knob"><canvas id="knob-lfo" data-id="lfo" data-min="0.01" data-max="4" data-val="0.4"></canvas><span>LFO</span><span id="k-lfo">0.40</span></div>
+      <div class="knob"><canvas id="knob-depth" data-id="depth" data-min="0" data-max="1" data-val="0.5"></canvas><span>DEPTH</span><span id="k-depth">0.50</span></div>
+    </div>
+    <div><label>WAVE mix (sin↔diente)</label><input type="range" id="sl-wave" min="0" max="1" step="0.01" value="0.3"></div>
+    <div><label>HARMONIC SNAP</label><input type="range" id="sl-snap" min="0" max="1" step="0.01" value="0.6"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 AUTO VALORES · PERSISTENCIA</div>
+    <canvas id="eigen-canvas" class="eigen-canvas"></canvas>
+    <div class="metric-row"><span>λ₁</span><span id="e1">—</span><span>λ₂</span><span id="e2">—</span><span>λ₃</span><span id="e3">—</span></div>
+    <div class="metric-row"><span>ENTROPÍA H</span><span id="ent-val">—</span><span>SCHUR</span><span id="schur-val">—</span></div>
+    <div class="gauge"><div class="gauge-fill" id="risk-gauge" style="width:0%"></div></div>
+    <div class="metric-row"><span>RIESGO</span><span id="risk-val">0%</span><span>CONSONANCIA</span><span id="cons-val">—</span></div>
+    <div class="card-title" style="margin-top:6px">📦 BARRAS DE PERSISTENCIA</div>
+    <canvas id="pers-canvas" class="pers-canvas"></canvas>
+  </div>
+  <div style="font-size:7px; color:var(--dim); text-align:center;">Análisis estocástico · curvas invariantes · geodésicas del toro · v2.0</div>
+</div>
+
+<footer>
+  <div>📅 RANGO: <span id="ft-range">—</span></div>
+  <div>|</div>
+  <div>📈 PUNTOS: <span id="ft-pts">—</span></div>
+  <div>|</div>
+  <div>🔊 SONIDO: <span id="ft-sound">listo</span></div>
+</footer>
+
+<script>
+// ============================================================
+//  GUETA · Análisis estocástico multivariado
+//  Fusiona STROMA (PCA/copulas/riesgo) + MEMBRANE (geometrías reactivas)
+//  Datos biológicos / caóticos / leptocúrticos
+//  Versión corregida: sin redeclaraciones, manejo robusto de canvas y audio
+// ============================================================
+
+// ---------------------- GENERADORES DE DATOS ----------------------
+function generateBiologicalDataset(type, nPoints = 400, nVars = 5) {
+  const times = Array.from({length: nPoints}, (_,i) => new Date(2024,0,1 + i).toISOString().slice(0,10));
+  let data = [];
+  const varNames = type === 'diversity' ? ['Riqueza','Abundancia','Equidad','Recambio','Dispersión'] :
+                   type === 'population' ? ['Liebres','Linces','Vegetación','Clima','Depredación'] :
+                   type === 'climate' ? ['Temperatura','Precipitación','Humedad','Viento','Presión'] :
+                   ['Caos1','Caos2','Caos3','Caos4','Caos5'];
+  
+  for(let v=0; v<nVars; v++) {
+    let values = [];
+    let trend = (v % 2 === 0) ? 0.001 : -0.0005;
+    let seasonAmp = 0.2 + v*0.1;
+    let noise = 0.05;
+    for(let t=0; t<nPoints; t++) {
+      let val = Math.sin(2*Math.PI*t/50 + v) * seasonAmp;
+      val += trend * t;
+      if(type === 'climate') {
+        if(Math.random() < 0.02) val += (Math.random() - 0.5)*1.5; // leptokurtic
+        val += Math.sin(2*Math.PI*t/365)*0.3;
+      } else if(type === 'synthetic') {
+        val = 0.6*Math.sin(0.01*t*v) + 0.4*Math.cos(0.007*t*(v+2)) + (Math.random()-0.5)*0.2;
+      } else {
+        val += (Math.random()-0.5)*noise;
+      }
+      values.push(val + v*0.5);
+    }
+    // estandarizar
+    const mean = values.reduce((a,b)=>a+b)/nPoints;
+    const std = Math.sqrt(values.reduce((s,x)=>s+(x-mean)**2,0)/nPoints) || 1;
+    data.push(values.map(x=>(x-mean)/std));
+  }
+  return { times, data, varNames };
+}
+
+// ---------------------- ESTADO GLOBAL ----------------------
+let currentDataset = null;      // { times, data, varNames }
+let windowSize = 40;
+let windowStart = 0;
+let correlationMatrix = [];
+let eigenvalues = [0.8,0.4,0.2,0.1,0.05];
+let entropy = 1.2, schur = 1.5, risk = 0.3;
+let persistenceData = [];       // almacena las barras de persistencia (renombrado)
+let selectedVarPair = [0,1];    // para cópula
+
+// Parámetros de síntesis
+const SP = { base:80, reverb:0.35, lfo:0.4, depth:0.5, wave:0.3, snap:0.6 };
+
+// Geometría
+let memMode = 'clifford';
+let memPhase = 0, lissPhase = 0;
+let cliffordParams = { a: -1.6, b: 1.7, c: 0.9, d: -0.5 };
+let cliffordX=0.1, cliffordY=0.1;
+
+// Canvas references
+const cMain = document.getElementById('canvas-membrane');
+const ctxMain = cMain.getContext('2d');
+const heatCanvas = document.getElementById('heatmap-canvas');
+const ctxHeat = heatCanvas.getContext('2d');
+const copCanvas = document.getElementById('copula-canvas');
+const ctxCop = copCanvas.getContext('2d');
+const eigenCanvas = document.getElementById('eigen-canvas');
+const ctxEigen = eigenCanvas.getContext('2d');
+const persCanvas = document.getElementById('pers-canvas');
+const ctxPers = persCanvas.getContext('2d');
+
+// Historial para eigen (máximo 100)
+let eigenHist = []; // array de vectores [e1,e2,e3]
+
+// ---------------------- UTILIDADES ----------------------
+function pearson(a,b) {
+  const n=a.length; const ma=a.reduce((s,x)=>s+x)/n, mb=b.reduce((s,x)=>s+x)/n;
+  let num=0, da=0, db=0;
+  for(let i=0;i<n;i++) { num+=(a[i]-ma)*(b[i]-mb); da+=(a[i]-ma)**2; db+=(b[i]-mb)**2; }
+  return da===0||db===0?0:num/Math.sqrt(da*db);
+}
+
+function eigenvaluesFromCorr(mat, k=5) {
+  let M = mat.map(r=>[...r]);
+  let eigs = [];
+  const n=mat.length;
+  for(let iter=0; iter<k; iter++) {
+    let v = Array.from({length:n},()=>Math.random());
+    let norm = Math.sqrt(v.reduce((s,x)=>s+x*x));
+    v = v.map(x=>x/norm);
+    for(let i=0;i<100;i++) {
+      let Mv = M.map(r=>r.reduce((s,x,j)=>s+x*v[j],0));
+      let lam = Mv.reduce((s,x,j)=>s+x*v[j],0);
+      norm = Math.sqrt(Mv.reduce((s,x)=>s+x*x))||1;
+      v = Mv.map(x=>x/norm);
+    }
+    let lam = v.reduce((s,x,j)=>s+x*M[j].reduce((a,b,jj)=>a+b*v[jj],0),0);
+    eigs.push(Math.abs(lam));
+    for(let i=0;i<n;i++) for(let j=0;j<n;j++) M[i][j] -= lam * v[i] * v[j];
+  }
+  return eigs.sort((a,b)=>b-a);
+}
+
+function shannonEntropy(eigs) {
+  const tot=eigs.reduce((s,v)=>s+v,0)||1;
+  const p=eigs.map(v=>v/tot);
+  return -p.reduce((s,v)=>s+(v>0?v*Math.log2(v):0),0);
+}
+
+function schurScore(eigs) {
+  const tot=eigs.reduce((s,v)=>s+v,0)||1;
+  const uni=tot/(eigs.length||1);
+  const maxE=Math.max(...eigs);
+  return maxE/uni;
+}
+
+// Función para calcular barras de persistencia (renombrada para evitar conflicto)
+function computePersistenceBars(eigs, thr=0.1) {
+  let sorted=[...eigs].sort((a,b)=>b-a);
+  let bars=[];
+  let i=0;
+  while(i<sorted.length) {
+    let birth=sorted[i], j=i+1;
+    while(j<sorted.length && sorted[j]>birth*thr) j++;
+    bars.push({birth, death:sorted[j-1]||0, life:birth-(sorted[j-1]||0)});
+    i=j;
+  }
+  return bars;
+}
+
+function updateCliffordFromMetrics() {
+  const e1 = eigenvalues[0]||0.5, e2 = eigenvalues[1]||0.3, e3 = eigenvalues[2]||0.2;
+  cliffordParams.a = -1.5 - e1*0.6 - entropy*0.1;
+  cliffordParams.b = 1.5 + e2*0.8;
+  cliffordParams.c = 0.7 + e3*0.9;
+  cliffordParams.d = -0.6 + (risk*0.8);
+  cliffordParams.a = Math.min(-1.2, Math.max(-2.2, cliffordParams.a));
+  cliffordParams.b = Math.min(2.2, Math.max(1.2, cliffordParams.b));
+  cliffordParams.c = Math.min(1.6, Math.max(0.5, cliffordParams.c));
+  cliffordParams.d = Math.min(0.2, Math.max(-1.2, cliffordParams.d));
+}
+
+function cliffordPoints(a,b,c,d, n=4000, skip=200) {
+  let pts=[]; let x=cliffordX, y=cliffordY;
+  for(let i=0;i<n+skip;i++) {
+    let nx = Math.sin(a*y) + c*Math.cos(a*x);
+    let ny = Math.sin(b*x) + d*Math.cos(b*y);
+    x=nx; y=ny;
+    if(i>=skip) pts.push([x,y]);
+  }
+  cliffordX=x; cliffordY=y;
+  // reinicio si colapsa
+  if(pts.length>100) {
+    let cx=0,cy=0; for(let p of pts) {cx+=p[0];cy+=p[1];}
+    cx/=pts.length; cy/=pts.length;
+    let spread=0; for(let p of pts) spread+=(p[0]-cx)**2+(p[1]-cy)**2;
+    if(Math.sqrt(spread/pts.length)<0.05) { cliffordX=(Math.random()-0.5)*1.5; cliffordY=(Math.random()-0.5)*1.5; return cliffordPoints(a,b,c,d,n,skip);}
+  }
+  return pts;
+}
+
+function torusGeodesic(p,q, steps=600) {
+  let pts=[]; let R=1.2, r=0.5;
+  for(let i=0;i<=steps;i++) {
+    let t=i/steps*Math.PI*2*3;
+    let x=(R+r*Math.cos(q*t))*Math.cos(p*t);
+    let y=(R+r*Math.cos(q*t))*Math.sin(p*t);
+    let z=r*Math.sin(q*t);
+    pts.push([x*0.9,y*0.9,z*0.9]);
+  }
+  return pts;
+}
+
+function lissajousPoints(a,b, steps=800) {
+  let pts=[];
+  for(let i=0;i<=steps;i++) {
+    let t=i/steps*Math.PI*2*Math.max(a,b);
+    pts.push([Math.sin(a*t + lissPhase), Math.sin(b*t)]);
+  }
+  return pts;
+}
+
+// ---------------------- RECOMPUTAR ANÁLISIS ----------------------
+function recomputeAnalysis() {
+  if(!currentDataset) return;
+  const end = Math.min(windowStart+windowSize, currentDataset.data[0].length);
+  const start = Math.max(0, end - windowSize);
+  const varCount = currentDataset.data.length;
+  const windowed = currentDataset.data.map(v=>v.slice(start,end));
+  
+  // matriz de correlación
+  let corr = Array(varCount).fill().map(()=>Array(varCount).fill(0));
+  for(let i=0;i<varCount;i++) for(let j=0;j<varCount;j++) corr[i][j]=pearson(windowed[i],windowed[j]);
+  correlationMatrix = corr;
+  eigenvalues = eigenvaluesFromCorr(corr, Math.min(5, varCount));
+  entropy = shannonEntropy(eigenvalues);
+  schur = schurScore(eigenvalues);
+  persistenceData = computePersistenceBars(eigenvalues, 0.15);
+  // riesgo: proporción de eigenvalores por encima de 0.5 (simplificado)
+  risk = Math.min(1, eigenvalues.filter(e=>e>0.5).length / Math.max(1,eigenvalues.length));
+  
+  // Actualizar historial de eigenvalores
+  eigenHist.push([eigenvalues[0]||0, eigenvalues[1]||0, eigenvalues[2]||0]);
+  if(eigenHist.length>100) eigenHist.shift();
+  
+  updateCliffordFromMetrics();
+  updateVisualizations(windowed, start, end);
+}
+
+function updateVisualizations(windowed, start, end) {
+  // Redimensionar canvases laterales (por si acaso)
+  [heatCanvas, copCanvas, eigenCanvas, persCanvas].forEach(c => {
+    if(c.width !== c.clientWidth) c.width = c.clientWidth;
+    if(c.height !== c.clientHeight) c.height = c.clientHeight;
+  });
+  
+  // heatmap
+  const n = correlationMatrix.length;
+  const cellW = heatCanvas.width / n, cellH = heatCanvas.height / n;
+  for(let i=0;i<n;i++) {
+    for(let j=0;j<n;j++) {
+      let val = correlationMatrix[i][j];
+      let hue = 180 + val*180; // cyan (0) a magenta (1)
+      ctxHeat.fillStyle = `hsl(${hue}, 70%, 50%)`;
+      ctxHeat.fillRect(j*cellW, i*cellH, cellW, cellH);
+    }
+  }
+  // Añadir nombres de variables si el canvas es suficientemente grande
+  if(currentDataset && currentDataset.varNames) {
+    ctxHeat.font = "7px 'JetBrains Mono'";
+    ctxHeat.fillStyle = "#cde8f5";
+    for(let i=0;i<n;i++) {
+      ctxHeat.save();
+      ctxHeat.translate(3, i*cellH+cellH/2);
+      ctxHeat.fillText(currentDataset.varNames[i].substring(0,3), 0, 0);
+      ctxHeat.restore();
+    }
+  }
+  
+  // copula: scatter de dos variables (primeras dos estandarizadas)
+  if(windowed.length>=2) {
+    const pts = windowed[0].map((_,idx)=>[windowed[0][idx], windowed[1][idx]]);
+    ctxCop.clearRect(0,0,copCanvas.width,copCanvas.height);
+    ctxCop.fillStyle='#020608'; ctxCop.fillRect(0,0,copCanvas.width,copCanvas.height);
+    const xScale = copCanvas.width/4, yScale = copCanvas.height/4;
+    pts.forEach(p=>{
+      const x = copCanvas.width/2 + p[0]*xScale;
+      const y = copCanvas.height/2 + p[1]*yScale;
+      ctxCop.fillStyle = `rgba(0,229,255,0.4)`;
+      ctxCop.fillRect(x-1,y-1,2,2);
+    });
+    ctxCop.fillStyle = 'var(--c4)';
+    ctxCop.font = "7px monospace";
+    ctxCop.fillText(`ρ = ${correlationMatrix[0][1].toFixed(2)}`, 5, 12);
+  }
+  
+  // eigen históricos
+  if(eigenHist.length>0 && eigenCanvas.width>0 && eigenCanvas.height>0) {
+    ctxEigen.clearRect(0,0,eigenCanvas.width,eigenCanvas.height);
+    const w = eigenCanvas.width, h = eigenCanvas.height;
+    const step = w / eigenHist.length;
+    // encontrar máximo histórico para escala
+    let maxE = 0;
+    for(let vec of eigenHist) maxE = Math.max(maxE, vec[0], vec[1], vec[2]);
+    maxE = Math.max(maxE, 0.1);
+    for(let i=0;i<eigenHist.length;i++) {
+      let e1=eigenHist[i][0], e2=eigenHist[i][1], e3=eigenHist[i][2];
+      ctxEigen.fillStyle=`rgba(0,229,255,0.5)`;
+      ctxEigen.fillRect(i*step, h - (e1/maxE)*h*0.8, step, (e1/maxE)*h*0.8);
+      ctxEigen.fillStyle=`rgba(118,255,3,0.5)`;
+      ctxEigen.fillRect(i*step, h - (e2/maxE)*h*0.8, step, (e2/maxE)*h*0.8);
+      ctxEigen.fillStyle=`rgba(224,64,251,0.5)`;
+      ctxEigen.fillRect(i*step, h - (e3/maxE)*h*0.8, step, (e3/maxE)*h*0.8);
+    }
+  }
+  
+  // persistence bars
+  if(persistenceData.length && persCanvas.width>0 && persCanvas.height>0) {
+    ctxPers.clearRect(0,0,persCanvas.width,persCanvas.height);
+    const maxL = Math.max(...persistenceData.map(b=>b.life), 0.01);
+    persistenceData.slice(0,6).forEach((b,i)=>{
+      const barW = persCanvas.width/6;
+      ctxPers.fillStyle = `hsl(${200+i*30},70%,60%)`;
+      const h = (b.life/maxL)*(persCanvas.height-12);
+      ctxPers.fillRect(i*barW+2, persCanvas.height-8 - h, barW-4, h);
+    });
+  }
+  
+  // UI textos
+  document.getElementById('e1').innerText = eigenvalues[0]?.toFixed(3)||'—';
+  document.getElementById('e2').innerText = eigenvalues[1]?.toFixed(3)||'—';
+  document.getElementById('e3').innerText = eigenvalues[2]?.toFixed(3)||'—';
+  document.getElementById('ent-val').innerText = entropy.toFixed(3);
+  document.getElementById('schur-val').innerText = schur.toFixed(3);
+  document.getElementById('risk-val').innerText = Math.round(risk*100)+'%';
+  document.getElementById('risk-gauge').style.width = (risk*100)+'%';
+  const cons = Math.max(0, 1 - entropy/Math.log2(eigenvalues.length+1));
+  document.getElementById('cons-val').innerText = cons.toFixed(3);
+  document.getElementById('hud-l1').innerText = eigenvalues[0]?.toFixed(2)||'—';
+  document.getElementById('hud-ent').innerText = entropy.toFixed(2);
+  document.getElementById('hud-freq').innerText = (SP.base * eigenvalues[0] || 80).toFixed(0);
+  document.getElementById('ft-pts').innerText = windowed[0]?.length||0;
+  if(currentDataset?.times) {
+    document.getElementById('time-range').innerHTML = `${currentDataset.times[start]} → ${currentDataset.times[Math.min(end-1, currentDataset.times.length-1)]}`;
+    document.getElementById('ft-range').innerHTML = `${currentDataset.times[start]} … ${currentDataset.times[Math.min(end-1, currentDataset.times.length-1)]}`;
+  }
+}
+
+// ---------------------- DIBUJADO DE GEOMETRÍAS ----------------------
+function drawClifford() {
+  const w=cMain.width, h=cMain.height;
+  if(w<10 || h<10) return;
+  ctxMain.fillStyle='#020608'; ctxMain.fillRect(0,0,w,h);
+  const pts=cliffordPoints(cliffordParams.a, cliffordParams.b, cliffordParams.c, cliffordParams.d, 5000);
+  if(pts.length===0) return;
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  pts.forEach(p=>{minX=Math.min(minX,p[0]);maxX=Math.max(maxX,p[0]);minY=Math.min(minY,p[1]);maxY=Math.max(maxY,p[1]);});
+  const rangeX=Math.max(0.01, maxX-minX), rangeY=Math.max(0.01, maxY-minY);
+  const scaleX = w/(rangeX+0.2), scaleY = h/(rangeY+0.2);
+  const offX = w/2 - (minX+maxX)/2*scaleX, offY = h/2 - (minY+maxY)/2*scaleY;
+  const size = Math.max(1, Math.min(3, 1.5 + risk*4));
+  pts.forEach(p=>{
+    const x=p[0]*scaleX+offX, y=p[1]*scaleY+offY;
+    if(x>=0 && x<w && y>=0 && y<h){
+      ctxMain.fillStyle=`rgba(0,229,255,${0.4+eigenvalues[0]*0.4})`;
+      ctxMain.fillRect(x,y,size,size);
+    }
+  });
+}
+
+function drawTorus() {
+  const w=cMain.width, h=cMain.height;
+  if(w<10||h<10) return;
+  ctxMain.fillStyle='#020608'; ctxMain.fillRect(0,0,w,h);
+  let p = Math.max(1, Math.floor(2 + eigenvalues[0]*5));
+  let q = Math.max(1, Math.floor(1 + eigenvalues[1]*6));
+  let geodesic = torusGeodesic(p,q);
+  const scale = Math.min(w,h)*0.4;
+  const cx=w/2, cy=h/2;
+  const angle = memPhase*0.2;
+  const cosA=Math.cos(angle), sinA=Math.sin(angle);
+  for(let i=0;i<geodesic.length-1;i++) {
+    const p1=geodesic[i], p2=geodesic[i+1];
+    const rotX1 = p1[0]*cosA - p1[2]*sinA, rotZ1 = p1[0]*sinA + p1[2]*cosA;
+    const x1 = cx + rotX1*scale, y1 = cy - p1[1]*scale*0.8 + rotZ1*scale*0.3;
+    const rotX2 = p2[0]*cosA - p2[2]*sinA, rotZ2 = p2[0]*sinA + p2[2]*cosA;
+    const x2 = cx + rotX2*scale, y2 = cy - p2[1]*scale*0.8 + rotZ2*scale*0.3;
+    ctxMain.strokeStyle = `hsla(${(p*30+q*20)%360},80%,60%,${0.4+risk*0.5})`;
+    ctxMain.lineWidth = 1+risk*2;
+    ctxMain.beginPath(); ctxMain.moveTo(x1,y1); ctxMain.lineTo(x2,y2); ctxMain.stroke();
+  }
+}
+
+function drawLissajous() {
+  const w=cMain.width, h=cMain.height;
+  if(w<10||h<10) return;
+  ctxMain.fillStyle='rgba(2,6,8,0.1)'; ctxMain.fillRect(0,0,w,h);
+  const cx=w/2, cy=h/2, R=Math.min(w,h)*0.4;
+  const a = Math.max(1, Math.floor(1 + eigenvalues[0]*5));
+  const b = Math.max(1, Math.floor(1 + eigenvalues[1]*6));
+  const pts = lissajousPoints(a,b);
+  ctxMain.beginPath();
+  for(let i=0;i<pts.length;i++) {
+    const x = cx + R*pts[i][0];
+    const y = cy + R*pts[i][1];
+    if(i===0) ctxMain.moveTo(x,y); else ctxMain.lineTo(x,y);
+  }
+  ctxMain.strokeStyle = `hsl(${eigenvalues[0]*360},80%,60%)`;
+  ctxMain.lineWidth = 1.2 + risk*3;
+  ctxMain.stroke();
+}
+
+// ---------------------- AUDIO ENGINE ----------------------
+let audioCtx=null, oscs=[], masterGain=null, convolver=null;
+function initAudio() {
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain(); masterGain.gain.value=0.5; masterGain.connect(audioCtx.destination);
+  convolver = audioCtx.createConvolver();
+  const sr=audioCtx.sampleRate, len=sr*1.5;
+  const buf=audioCtx.createBuffer(2,len,sr);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/sr*3);}
+  convolver.buffer=buf; convolver.connect(masterGain);
+}
+
+function stopAudio() { oscs.forEach(o=>{try{o.stop()}catch(e){}}); oscs=[]; }
+
+function sonify() {
+  if(!audioCtx) initAudio();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  stopAudio();
+  if(eigenvalues.length===0) return;
+  const freqs = eigenvalues.slice(0,5).map((e,i)=> SP.base * (e/(eigenvalues[0]||1))*(i+1));
+  const waveBlend=SP.wave, reverbMix=SP.reverb;
+  const masterNorm = 0.6/freqs.length;
+  freqs.forEach((f,i)=>{
+    const osc=audioCtx.createOscillator();
+    const osc2=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    const mixer=audioCtx.createGain();
+    const amp = masterNorm * Math.exp(-i*0.5*schur);
+    g.gain.value=amp;
+    osc.frequency.value=f; osc.type='sine';
+    osc2.frequency.value=f; osc2.type='sawtooth';
+    mixer.gain.value=waveBlend;
+    osc.connect(g); osc2.connect(mixer); mixer.connect(g);
+    if(reverbMix>0.01){ const send=audioCtx.createGain(); send.gain.value=reverbMix; g.connect(send); send.connect(convolver);}
+    g.connect(masterGain);
+    osc.start(); osc2.start();
+    const modRate=0.03+entropy*0.08;
+    for(let t=0;t<12;t+=0.5){
+      const v=amp*(0.6+0.4*Math.sin(2*Math.PI*modRate*t+i*1.3));
+      g.gain.linearRampToValueAtTime(Math.max(0.001,v),audioCtx.currentTime+t+0.5);
+    }
+    g.gain.linearRampToValueAtTime(0.0001,audioCtx.currentTime+12);
+    osc.stop(audioCtx.currentTime+12.1); osc2.stop(audioCtx.currentTime+12.1);
+    oscs.push(osc,osc2);
+  });
+  document.getElementById('ft-sound').innerText = 'sonando';
+  setTimeout(()=>{ document.getElementById('ft-sound').innerText = 'listo'; }, 13000);
+}
+
+// ---------------------- EVENTOS UI ----------------------
+document.getElementById('btn-reload').onclick = () => {
+  const type = document.getElementById('ds-select').value;
+  const ds = generateBiologicalDataset(type, 400, 5);
+  currentDataset = ds;
+  windowStart = 0;
+  const maxStart = Math.max(0, currentDataset.data[0].length - windowSize);
+  document.getElementById('sl-t0').max = maxStart;
+  document.getElementById('sl-t0').value = 0;
+  document.getElementById('t0-val').innerText = 0;
+  recomputeAnalysis();
+};
+document.getElementById('sl-w').oninput = function() { 
+  windowSize=+this.value; 
+  document.getElementById('w-val').innerText=windowSize;
+  if(currentDataset) {
+    const maxStart = Math.max(0, currentDataset.data[0].length - windowSize);
+    document.getElementById('sl-t0').max = maxStart;
+    if(windowStart > maxStart) { windowStart = maxStart; document.getElementById('sl-t0').value = windowStart; document.getElementById('t0-val').innerText = windowStart; }
+    recomputeAnalysis();
+  }
+};
+document.getElementById('sl-t0').oninput = function() { 
+  windowStart=+this.value; 
+  document.getElementById('t0-val').innerText=windowStart; 
+  if(currentDataset) recomputeAnalysis();
+};
+document.getElementById('btn-play').onclick = () => { if(currentDataset) sonify(); else alert('Carga un dataset primero'); };
+document.getElementById('btn-stop').onclick = () => stopAudio();
+document.querySelectorAll('.mode-bar .btn-pill').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    memMode=btn.dataset.mode;
+    document.getElementById('mode-name').innerText=memMode.toUpperCase();
+    document.querySelectorAll('.mode-bar .btn-pill').forEach(b=>b.classList.remove('mode-active'));
+    btn.classList.add('mode-active');
+  });
+});
+
+// Redimensionado y knobs
+function resizeAll() {
+  cMain.width = cMain.clientWidth;
+  cMain.height = cMain.clientHeight;
+  heatCanvas.width = heatCanvas.clientWidth;
+  heatCanvas.height = heatCanvas.clientHeight;
+  copCanvas.width = copCanvas.clientWidth;
+  copCanvas.height = copCanvas.clientHeight;
+  eigenCanvas.width = eigenCanvas.clientWidth;
+  eigenCanvas.height = eigenCanvas.clientHeight;
+  persCanvas.width = persCanvas.clientWidth;
+  persCanvas.height = persCanvas.clientHeight;
+  if(currentDataset) recomputeAnalysis();
+}
+window.addEventListener('resize', resizeAll);
+
+function drawKnob(id){
+  const cv=document.getElementById('knob-'+id); if(!cv)return;
+  const mn=+cv.dataset.min, mx=+cv.dataset.max, val=+cv.dataset.val;
+  const ctx=cv.getContext('2d'), W=36,H=36,R=14;
+  cv.width=W;cv.height=H;ctx.clearRect(0,0,W,H);
+  const startA=Math.PI*0.75, endA=Math.PI*2.25;
+  const angle=startA+(val-mn)/(mx-mn)*(endA-startA);
+  ctx.strokeStyle='#0d1929';ctx.lineWidth=3;ctx.beginPath();ctx.arc(W/2,H/2,R,startA,endA);ctx.stroke();
+  ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(W/2,H/2,R,startA,angle);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W/2,H/2);ctx.lineTo(W/2+R*0.6*Math.cos(angle),H/2+R*0.6*Math.sin(angle));ctx.stroke();
+}
+['base','reverb','lfo','depth'].forEach(id=>drawKnob(id));
+document.querySelectorAll('canvas[id^="knob-"]').forEach(cv=>{
+  let drag=false,sy=0,sv=0;
+  cv.addEventListener('mousedown',e=>{drag=true;sy=e.clientY;sv=+cv.dataset.val;});
+  window.addEventListener('mouseup',()=>drag=false);
+  window.addEventListener('mousemove',e=>{
+    if(!drag)return;
+    const mn=+cv.dataset.min,mx=+cv.dataset.max;
+    const delta=(sy-e.clientY)/(100)*(mx-mn);
+    const nv=Math.max(mn,Math.min(mx,sv+delta));
+    cv.dataset.val=nv; SP[cv.dataset.id]=nv;
+    document.getElementById(`k-${cv.dataset.id}`).innerText=nv.toFixed(nv<10?2:0);
+    drawKnob(cv.dataset.id);
+  });
+});
+document.getElementById('sl-wave').oninput=e=>SP.wave=+e.target.value;
+document.getElementById('sl-snap').oninput=e=>SP.snap=+e.target.value;
+
+// Animación loop
+function animate() {
+  memPhase += 0.02 + risk*0.2;
+  lissPhase += 0.01;
+  if(memMode==='clifford') drawClifford();
+  else if(memMode==='torus') drawTorus();
+  else drawLissajous();
+  requestAnimationFrame(animate);
+}
+
+// Inicialización
+window.onload = () => {
+  resizeAll();
+  const ds = generateBiologicalDataset('diversity', 400, 5);
+  currentDataset = ds;
+  windowStart=0;
+  const maxStart = Math.max(0, ds.data[0].length - windowSize);
+  document.getElementById('sl-t0').max = maxStart;
+  recomputeAnalysis();
+  animate();
+};
+</script>
+</body>
+</html>

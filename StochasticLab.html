@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>∑ Stochastic Laboratory — Majorization · Copulas · Spectral · Sonification</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+        :root {
+            --bg: #030608;
+            --bg2: #05090e;
+            --bg3: #070d14;
+            --bord: #0c1e2c;
+            --bord2: #132840;
+            --c1: #00c8e0;
+            --c2: #39ff84;
+            --c3: #ff5e1a;
+            --c4: #b06aff;
+            --c5: #ffe066;
+            --dim: #1e3a52;
+            --muted: #3d6880;
+            --text: #8ab8cc;
+            --bright: #d4edf7;
+            --risk-h: #ff3b3b;
+            --risk-m: #ff8c00;
+            --risk-l: #39ff84;
+            --glow1: rgba(0, 200, 224, 0.12);
+            --glow3: rgba(255, 94, 26, 0.12);
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+            font-size: 11px;
+        }
+
+        .app {
+            display: grid;
+            grid-template-rows: 42px 1fr;
+            grid-template-columns: 300px 1fr 300px;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            grid-column: 1/-1;
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            gap: 14px;
+            border-bottom: 1px solid var(--bord);
+            background: var(--bg2);
+            position: relative;
+            z-index: 100;
+        }
+        .logo-mark {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 16px;
+            letter-spacing: 4px;
+            color: var(--c1);
+            text-shadow: 0 0 18px rgba(0, 200, 224, 0.35);
+            flex-shrink: 0;
+        }
+        .logo-mark small {
+            font-size: 8px;
+            letter-spacing: 2px;
+            color: var(--muted);
+            font-weight: 400;
+            display: block;
+            line-height: 1;
+            margin-top: -2px;
+        }
+        .topbar-sep {
+            width: 1px;
+            height: 20px;
+            background: var(--bord);
+            flex-shrink: 0;
+        }
+        .status-pills {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
+        }
+        .spill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 2px;
+            border: 1px solid var(--bord);
+            font-size: 8px;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            background: var(--bg3);
+        }
+        .spill .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--dim);
+            flex-shrink: 0;
+        }
+        .spill.active .dot {
+            background: var(--c2);
+            box-shadow: 0 0 6px var(--c2);
+            animation: blink 2s infinite;
+        }
+        .spill.warn .dot {
+            background: var(--c3);
+            box-shadow: 0 0 6px var(--c3);
+        }
+        .spill.active,
+        .spill.warn {
+            border-color: var(--bord2);
+            color: var(--bright);
+        }
+        @keyframes blink {
+            0%,
+            100% {
+                opacity: 1
+            }
+            50% {
+                opacity: 0.4
+            }
+        }
+        .spill .slabel {
+            color: var(--muted);
+        }
+        .spill .sval {
+            color: var(--bright);
+            font-weight: 600;
+        }
+        .topbar-ctrls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-left: auto;
+        }
+        .btn {
+            background: none;
+            border: 1px solid var(--dim);
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 8px;
+            letter-spacing: 2px;
+            padding: 4px 12px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            border-color: var(--c1);
+            color: var(--c1);
+            box-shadow: 0 0 8px rgba(0, 200, 224, 0.2);
+        }
+        .btn.primary {
+            border-color: var(--c1);
+            color: var(--c1);
+        }
+        .btn.primary:hover {
+            background: var(--c1);
+            color: var(--bg);
+        }
+        .btn.active {
+            border-color: var(--c2);
+            color: var(--c2);
+            background: rgba(57, 255, 132, 0.06);
+        }
+        .btn.danger {
+            border-color: var(--c3);
+            color: var(--c3);
+        }
+
+        /* ── LEFT PANEL ── */
+        .left-panel {
+            grid-column: 1;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--bord);
+            overflow-y: auto;
+            scrollbar-width: none;
+            background: var(--bg2);
+        }
+        .left-panel::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ── CENTER ── */
+        .center-panel {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+            overflow-y: auto;
+            scrollbar-width: none;
+            padding: 8px 10px;
+            gap: 8px;
+        }
+        .center-panel::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ── RIGHT PANEL ── */
+        .right-panel {
+            grid-column: 3;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--bord);
+            background: var(--bg2);
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        .right-panel::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ── SECTIONS ── */
+        .section {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--bord);
+            flex-shrink: 0;
+        }
+        .section-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--dim);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 1px;
+            background: var(--c1);
+            flex-shrink: 0;
+        }
+        .section-title em {
+            color: var(--c4);
+            font-style: normal;
+        }
+
+        /* ── DATA ROWS ── */
+        .drow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(12, 30, 44, 0.5);
+            gap: 6px;
+        }
+        .drow:last-child {
+            border-bottom: none;
+        }
+        .dl {
+            color: var(--muted);
+            font-size: 9px;
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+        .dv {
+            color: var(--bright);
+            font-size: 9px;
+            font-weight: 600;
+            text-align: right;
+        }
+        .dv.pos {
+            color: var(--c2);
+        }
+        .dv.neg {
+            color: var(--risk-h);
+        }
+        .dv.mid {
+            color: var(--c3);
+        }
+
+        /* ── CANVAS WRAPPERS ── */
+        .canvas-wrap {
+            border: 1px solid var(--bord);
+            background: var(--bg3);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+        .canvas-wrap canvas {
+            display: block;
+            width: 100%;
+            image-rendering: pixelated;
+        }
+
+        /* ── MODULE TABS ── */
+        .module-tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--bord);
+            padding-bottom: 6px;
+            flex-shrink: 0;
+        }
+        .module-tab {
+            padding: 3px 10px;
+            background: #111;
+            color: #666;
+            border: 1px solid #333;
+            cursor: pointer;
+            font-size: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            border-radius: 2px;
+            letter-spacing: 1px;
+            transition: all 0.15s;
+        }
+        .module-tab:hover {
+            border-color: var(--c1);
+            color: var(--c1);
+        }
+        .module-tab.sel {
+            background: #1a2a1a;
+            color: #4f4;
+            border-color: #4f4;
+        }
+
+        /* ── SLIDERS ── */
+        input[type=range] {
+            accent-color: var(--c1);
+            cursor: pointer;
+            width: 100%;
+            margin: 3px 0;
+        }
+        label {
+            font-size: 9px;
+            color: var(--muted);
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 2px;
+        }
+        select {
+            background: var(--bg3);
+            border: 1px solid var(--bord);
+            color: var(--bright);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        /* ── EIGEN BARS ── */
+        .eigen-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .eigen-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .eigen-label {
+            font-family: 'Syne', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            width: 22px;
+            flex-shrink: 0;
+        }
+        .eigen-track {
+            flex: 1;
+            height: 5px;
+            background: var(--bg3);
+            border-radius: 1px;
+            overflow: hidden;
+        }
+        .eigen-fill {
+            height: 100%;
+            border-radius: 1px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .e1 .eigen-fill {
+            background: linear-gradient(90deg, var(--c1), #0097b2);
+        }
+        .e2 .eigen-fill {
+            background: linear-gradient(90deg, var(--c4), #7a3fcf);
+        }
+        .e3 .eigen-fill {
+            background: linear-gradient(90deg, var(--c2), #22b55e);
+        }
+        .eigen-val {
+            width: 36px;
+            text-align: right;
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--bright);
+        }
+        .eigen-pct {
+            width: 28px;
+            text-align: right;
+            font-size: 8px;
+            color: var(--dim);
+        }
+
+        /* ── REGIME BADGE ── */
+        .regime-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            border: 1px solid;
+            transition: all 0.3s;
+        }
+        .regime-badge::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        .regime-badge.stable {
+            border-color: var(--c2);
+            color: var(--c2);
+            background: rgba(57, 255, 132, 0.05);
+        }
+        .regime-badge.coherent {
+            border-color: var(--c1);
+            color: var(--c1);
+            background: rgba(0, 200, 224, 0.05);
+        }
+        .regime-badge.transition {
+            border-color: var(--c3);
+            color: var(--c3);
+            background: rgba(255, 94, 26, 0.05);
+        }
+        .regime-badge.chaotic {
+            border-color: var(--risk-h);
+            color: var(--risk-h);
+            background: rgba(255, 59, 59, 0.05);
+        }
+
+        /* ── MAJORIZATION BARS ── */
+        .maj-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 2px;
+        }
+        .maj-bar {
+            height: 6px;
+            border-radius: 1px;
+            transition: width 0.3s;
+        }
+        .maj-val {
+            font-size: 8px;
+            color: var(--muted);
+            width: 36px;
+            text-align: right;
+        }
+
+        /* ── SCROLL FILL ── */
+        .scroll-fill {
+            overflow-y: auto;
+            scrollbar-width: none;
+            flex: 1;
+            min-height: 0;
+        }
+        .scroll-fill::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ── SONIC PILL ── */
+        .sonic-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            border: 1px solid var(--bord);
+            border-radius: 2px;
+            background: var(--bg3);
+            font-size: 8px;
+            letter-spacing: 1px;
+            color: var(--muted);
+        }
+        .sonic-pill.active {
+            border-color: var(--c4);
+        }
+        .sonic-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--dim);
+            flex-shrink: 0;
+        }
+        .sonic-pill.active .sonic-dot {
+            background: var(--c4);
+            box-shadow: 0 0 8px var(--c4);
+            animation: blink 1.2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- ═══════ TOPBAR ═══════ -->
+        <header class="topbar">
+            <div class="logo-mark">∑ SL<small>STOCHASTIC LAB</small></div>
+            <div class="topbar-sep"></div>
+            <div class="status-pills">
+                <div class="spill active" id="pill-window">
+                    <div class="dot"></div><span class="slabel">WINDOW</span>
+                    <span class="sval" id="pill-win-val">40</span>
+                </div>
+                <div class="spill" id="pill-q">
+                    <div class="dot"></div><span class="slabel">q=p/n</span>
+                    <span class="sval" id="pill-q-val">—</span>
+                </div>
+                <div class="spill" id="pill-l1-pill">
+                    <div class="dot"></div><span class="slabel">λ₁</span>
+                    <span class="sval" id="pill-l1-val">—</span>
+                </div>
+                <div class="spill" id="pill-mp">
+                    <div class="dot"></div><span class="slabel">MP λ₊</span>
+                    <span class="sval" id="pill-mp-val">—</span>
+                </div>
+                <div class="spill" id="pill-risk-top">
+                    <div class="dot"></div><span class="slabel">RISK</span>
+                    <span class="sval" id="pill-risk-top-val">—</span>
+                </div>
+            </div>
+            <div class="topbar-ctrls">
+                <button class="btn primary" id="btn-sonify-heat">▶ HEAT AUDIO</button>
+                <button class="btn" id="btn-sonify-rhythm">▶ RHYTHM</button>
+                <button class="btn danger" id="btn-stop">■ STOP</button>
+            </div>
+        </header>
+
+        <!-- ═══════ LEFT PANEL ═══════ -->
+        <div class="left-panel scroll-fill">
+            <div class="section">
+                <div class="section-title">VARIABLES <em>· Configuración</em></div>
+                <div id="va-configs"></div>
+            </div>
+            <div class="section">
+                <div class="section-title">VENTANA <em>· Temporal</em></div>
+                <label>W = <b style="color:var(--c1)" id="lbl-w">40</b></label>
+                <input type="range" id="slider-w" min="10" max="200" value="40" step="1">
+                <label>t₀ = <b style="color:var(--c1)" id="lbl-t0">0</b></label>
+                <input type="range" id="slider-t0" min="0" max="160" value="0" step="1">
+                <div style="font-size:8px;color:var(--dim);margin-top:4px">
+                    n=<span id="info-n">40</span> · p=4 · q=<span id="info-q">0.100</span>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">BAYES <em>· Beta-Binomial</em></div>
+                <label>α prior = <b style="color:var(--c2)" id="lbl-alpha">2.0</b></label>
+                <input type="range" id="slider-alpha" min="0.5" max="20" value="2" step="0.5">
+                <label>β prior = <b style="color:var(--c3)" id="lbl-beta">2.0</b></label>
+                <input type="range" id="slider-beta" min="0.5" max="20" value="2" step="0.5">
+                <label>n obs = <b style="color:var(--c4)" id="lbl-obs">0</b></label>
+                <input type="range" id="slider-obs" min="0" max="200" value="0" step="1">
+                <label>k éxitos = <b style="color:var(--c5)" id="lbl-succ">0</b></label>
+                <input type="range" id="slider-succ" min="0" max="0" value="0" step="1">
+                <div class="drow"><div class="dl">Posterior α</div><div class="dv pos" id="bayes-post-a">—</div></div>
+                <div class="drow"><div class="dl">Posterior β</div><div class="dv" id="bayes-post-b">—</div></div>
+                <div class="drow"><div class="dl">E[θ|data]</div><div class="dv mid" id="bayes-mean">—</div></div>
+                <div class="drow"><div class="dl">Var[θ|data]</div><div class="dv" id="bayes-var-val">—</div></div>
+                <canvas id="bayes-dist-canvas" style="width:100%;height:50px;margin-top:6px;border:1px solid var(--bord);border-radius:2px"></canvas>
+            </div>
+        </div>
+
+        <!-- ═══════ CENTER PANEL ═══════ -->
+        <div class="center-panel">
+            <div class="module-tabs" id="module-tabs">
+                <button class="module-tab sel" data-mod="heatmap">HEATMAP</button>
+                <button class="module-tab" data-mod="corr">CORR+MAJ</button>
+                <button class="module-tab" data-mod="copulas">CÓPULAS</button>
+                <button class="module-tab" data-mod="eigen">EIGENVALUES</button>
+                <button class="module-tab" data-mod="giros">GIROS RHYTHM</button>
+            </div>
+            <div id="module-content" style="flex:1;display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+
+        <!-- ═══════ RIGHT PANEL ═══════ -->
+        <div class="right-panel scroll-fill">
+            <div class="section">
+                <div class="section-title">MAYORIZACIÓN <em>· Filas DS</em></div>
+                <div id="maj-display"></div>
+            </div>
+            <div class="section">
+                <div class="section-title">EIGENVALUES <em>· PCA</em></div>
+                <div class="eigen-group" id="eigen-display"></div>
+                <div style="margin-top:6px;display:flex;align-items:center;justify-content:space-between">
+                    <div class="regime-badge stable" id="regime-badge-r">ESTABLE</div>
+                    <div style="font-size:8px;color:var(--dim)">Señal: <span id="signal-count" style="color:var(--c2)">—</span></div>
+                </div>
+                <div class="drow"><div class="dl">MP λ₊</div><div class="dv" id="mp-edge-val">—</div></div>
+                <div class="drow"><div class="dl">Δλ₁</div><div class="dv" id="delta-l1-val">—</div></div>
+                <div class="drow"><div class="dl">Entropía PCA</div><div class="dv mid" id="pca-entropy">—</div></div>
+            </div>
+            <div class="section">
+                <div class="section-title">RIESGO <em>· Giros Rhythm</em></div>
+                <canvas id="risk-line-canvas" style="width:100%;height:50px;border:1px solid var(--bord);border-radius:2px"></canvas>
+                <div class="drow"><div class="dl">Riesgo medio</div><div class="dv" id="risk-mean">—</div></div>
+                <div class="drow"><div class="dl">Riesgo máx</div><div class="dv neg" id="risk-max">—</div></div>
+            </div>
+            <div class="section">
+                <div class="section-title">SONIFICACIÓN</div>
+                <div class="sonic-pill" id="sonic-pill-r">
+                    <div class="sonic-dot"></div>
+                    <span id="sonic-info-r">Inactivo</span>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">LEYENDA</div>
+                <div style="font-size:8px;color:var(--muted);line-height:1.9">
+                    <div>Mayorización x≻y: dispersión de autocorrelación</div>
+                    <div>DS = Doblemente Estocástica (Sinkhorn)</div>
+                    <div>MP = Marchenko-Pastur λ₊ = (1+√q)²</div>
+                    <div>λ > λ₊ → señal estructural real</div>
+                    <div>Riesgo = %λ señal + magnitud λ₁</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════
+        //  ∑ STOCHASTIC LABORATORY — Vanilla JS
+        //  Majorization · Copulas · Spectral · Sonification
+        // ═══════════════════════════════════════════════════════════
+
+        // ── MATH UTILITIES ──
+        function randn() {
+            let u = 0,
+                v = 0;
+            while (u === 0) u = Math.random();
+            while (v === 0) v = Math.random();
+            return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+        }
+
+        function generateTimeSeries(n, type = "ar1", params = {}) {
+            const { phi = 0.8, mu = 0, sigma = 1, period = 20, trend = 0 } = params;
+            const out = new Array(n);
+            out[0] = randn() * sigma + mu;
+            for (let i = 1; i < n; i++) {
+                const seasonal = type === "seasonal" ? Math.sin((2 * Math.PI * i) / period) * sigma : 0;
+                const trendComp = trend * i;
+                out[i] = phi * out[i - 1] + randn() * sigma * Math.sqrt(Math.max(0, 1 - phi * phi)) + mu + seasonal +
+                    trendComp;
+            }
+            return out;
+        }
+
+        function pearsonCorr(a, b) {
+            const n = a.length;
+            const ma = a.reduce((s, x) => s + x, 0) / n;
+            const mb = b.reduce((s, x) => s + x, 0) / n;
+            let num = 0,
+                da = 0,
+                db = 0;
+            for (let i = 0; i < n; i++) {
+                num += (a[i] - ma) * (b[i] - mb);
+                da += (a[i] - ma) ** 2;
+                db += (b[i] - mb) ** 2;
+            }
+            return da === 0 || db === 0 ? 0 : num / Math.sqrt(da * db);
+        }
+
+        function sinkhornNormalize(mat, iters = 20) {
+            const n = mat.length;
+            let M = mat.map(row => row.map(v => Math.max(0, v)));
+            for (let it = 0; it < iters; it++) {
+                for (let i = 0; i < n; i++) {
+                    const s = M[i].reduce((a, b) => a + b, 0) || 1;
+                    M[i] = M[i].map(v => v / s);
+                }
+                for (let j = 0; j < n; j++) {
+                    const s = M.reduce((a, row) => a + row[j], 0) || 1;
+                    for (let i = 0; i < n; i++) M[i][j] /= s;
+                }
+            }
+            return M;
+        }
+
+        function majorization(vec) {
+            const sorted = [...vec].sort((a, b) => b - a);
+            const cumSum = [];
+            let s = 0;
+            for (const v of sorted) { s += Math.abs(v);
+                cumSum.push(s); }
+            return cumSum;
+        }
+
+        function toUniform(arr) {
+            const n = arr.length;
+            const sorted = [...arr].map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v);
+            const ranks = new Array(n);
+            sorted.forEach(({ i }, r) => { ranks[i] = (r + 1) / (n + 1); });
+            return ranks;
+        }
+
+        function eigenvalues(mat, numEigs = 3) {
+            const n = mat.length;
+            const eigs = [];
+            let M = mat.map(r => [...r]);
+            for (let k = 0; k < Math.min(n, numEigs); k++) {
+                let v = Array.from({ length: n }, () => Math.random());
+                let norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0));
+                v = v.map(x => x / norm);
+                for (let it = 0; it < 100; it++) {
+                    const Mv = M.map(row => row.reduce((s, x, j) => s + x * v[j], 0));
+                    const lambda = Mv.reduce((s, x, j) => s + x * v[j], 0);
+                    norm = Math.sqrt(Mv.reduce((s, x) => s + x * x, 0));
+                    v = Mv.map(x => x / (norm || 1));
+                    if (it === 99) eigs.push(Math.abs(lambda));
+                }
+                for (let i = 0; i < n; i++)
+                    for (let j = 0; j < n; j++)
+                        M[i][j] -= eigs[k] * v[i] * v[j];
+            }
+            return eigs.sort((a, b) => b - a);
+        }
+
+        function marchenkoPastur(q, sigma2 = 1) {
+            return sigma2 * (1 + Math.sqrt(q)) ** 2;
+        }
+
+        function lgamma(x) {
+            const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2,
+                -0.5395239384953e-5
+            ];
+            let y = x,
+                tmp = x + 5.5;
+            tmp -= (x + 0.5) * Math.log(tmp);
+            let ser = 1.000000000190015;
+            for (let j = 0; j < 6; j++) ser += c[j] / ++y;
+            return -tmp + Math.log(2.5066282746310005 * ser / x);
+        }
+
+        // ── AUDIO ENGINE ──
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.nodes = [];
+            }
+            init() {
+                if (!this.ctx) this.ctx = new(window.AudioContext || window.webkitAudioContext)();
+            }
+            sonifyHeatmap(matrix, duration = 3) {
+                this.init();
+                this.stop();
+                const ctx = this.ctx;
+                const now = ctx.currentTime;
+                const rows = matrix.length;
+                const cols = matrix[0].length;
+                const beatDur = duration / cols;
+                for (let j = 0; j < cols; j++) {
+                    const t = now + j * beatDur;
+                    for (let i = 0; i < rows; i++) {
+                        const val = matrix[i][j];
+                        if (Math.abs(val) < 0.1) continue;
+                        const freq = 110 * Math.pow(2, (i / rows) * 3);
+                        const gain = Math.abs(val) * 0.08;
+                        const osc = ctx.createOscillator();
+                        const gainNode = ctx.createGain();
+                        osc.type = val > 0 ? "sine" : "sawtooth";
+                        osc.frequency.value = freq;
+                        gainNode.gain.setValueAtTime(gain, t);
+                        gainNode.gain.exponentialRampToValueAtTime(0.0001, t + beatDur * 0.9);
+                        osc.connect(gainNode);
+                        gainNode.connect(ctx.destination);
+                        osc.start(t);
+                        osc.stop(t + beatDur);
+                        this.nodes.push(osc);
+                    }
+                }
+            }
+            sonifyRhythm(riskVec, duration = 3) {
+                this.init();
+                this.stop();
+                const ctx = this.ctx;
+                const now = ctx.currentTime;
+                riskVec.forEach((risk, i) => {
+                    const t = now + (i / riskVec.length) * duration;
+                    const freq = 200 + risk * 600;
+                    const osc = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    osc.frequency.value = freq;
+                    osc.type = "triangle";
+                    g.gain.setValueAtTime(risk * 0.15, t);
+                    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+                    osc.connect(g);
+                    g.connect(ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.35);
+                    this.nodes.push(osc);
+                });
+            }
+            stop() {
+                this.nodes.forEach(n => { try { n.stop(); } catch (e) {} });
+                this.nodes = [];
+            }
+        }
+        const audio = new AudioEngine();
+
+        // ── STATE ──
+        const VA_PRESETS = [
+            { name: "X₁", type: "ar1", phi: 0.9, sigma: 1, mu: 0, period: 20, trend: 0, color: "#00c8e0" },
+            { name: "X₂", type: "ar1", phi: -0.6, sigma: 1.5, mu: 0.5, period: 20, trend: 0, color: "#b06aff" },
+            { name: "X₃", type: "seasonal", phi: 0.4, sigma: 0.8, mu: 0, period: 24, trend: 0, color: "#39ff84" },
+            { name: "X₄", type: "ar1", phi: 0.95, sigma: 0.5, mu: -0.3, period: 20, trend: 0.005, color: "#ffe066" },
+        ];
+
+        const N_TOTAL = 200;
+        let windowSize = 40;
+        let windowStart = 0;
+        let vaParams = JSON.parse(JSON.stringify(VA_PRESETS));
+        let activeModule = "heatmap";
+        let bayesPrior = { alpha: 2, beta: 2 };
+        let observations = 0;
+        let successes = 0;
+
+        // Derived data
+        let allSeries = [];
+        let windowed = [];
+        let corrMatrix = [];
+        let dsMatrix = [];
+        let eigs = [];
+        let riskVec = [];
+        let uniforms = [];
+        let majVectors = [];
+        let q = 0;
+
+        function recomputeAll() {
+            const windowEnd = Math.min(windowStart + windowSize, N_TOTAL);
+            allSeries = vaParams.map(p => generateTimeSeries(N_TOTAL, p.type, p));
+            windowed = allSeries.map(s => s.slice(windowStart, windowEnd));
+            const n = windowed.length;
+            const m = windowed[0]?.length || 1;
+            q = n / m;
+
+            corrMatrix = Array.from({ length: n }, (_, i) =>
+                Array.from({ length: n }, (_, j) => pearsonCorr(windowed[i], windowed[j]))
+            );
+            const absCorr = corrMatrix.map(r => r.map(Math.abs));
+            dsMatrix = sinkhornNormalize(absCorr);
+            majVectors = dsMatrix.map(row => majorization(row));
+            uniforms = windowed.map(toUniform);
+            eigs = eigenvalues(corrMatrix, Math.min(n, 5));
+            const mpEdge = marchenkoPastur(q);
+
+            // Risk vector
+            const step = Math.max(1, Math.floor(windowSize / 20));
+            riskVec = [];
+            for (let t = 0; t + step <= windowed[0].length; t += step) {
+                const slice = windowed.map(s => s.slice(t, t + step));
+                const sliceCorr = Array.from({ length: slice.length }, (_, i) =>
+                    Array.from({ length: slice.length }, (_, j) => pearsonCorr(slice[i], slice[j]))
+                );
+                const dsSlice = sinkhornNormalize(sliceCorr.map(r => r.map(Math.abs)));
+                const eigSlice = eigenvalues(dsSlice, Math.min(slice.length, 5));
+                const signalEigs = eigSlice.filter(e => e > mpEdge);
+                const risk = Math.min(1, signalEigs.length / Math.max(1, eigSlice.length) + (eigSlice[0] / Math.max(0.01,
+                    mpEdge * 3)) * 0.3);
+                riskVec.push(risk);
+            }
+            updateAllUI();
+        }
+
+        // ── CANVAS DRAWING ──
+        function drawHeatmap(canvas, data, title, colormap = "diverge") {
+            if (!canvas || !data || data.length === 0) return;
+            const ctx = canvas.getContext("2d");
+            const rows = data.length;
+            const cols = data[0].length;
+            canvas.width = cols;
+            canvas.height = rows;
+            const flat = data.flat();
+            const min = Math.min(...flat);
+            const max = Math.max(...flat);
+            const range = max - min || 1;
+            const img = ctx.createImageData(cols, rows);
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const t = (data[i][j] - min) / range;
+                    let r, g, b;
+                    if (colormap === "diverge") {
+                        r = t > 0.5 ? 255 : Math.round(t * 2 * 255);
+                        g = t > 0.5 ? Math.round((1 - t) * 2 * 255) : Math.round(t * 2 * 255);
+                        b = t < 0.5 ? 255 : Math.round((1 - t) * 2 * 255);
+                    } else if (colormap === "heat") {
+                        r = Math.round(t * 255);
+                        g = Math.round(t * t * 180);
+                        b = Math.round((1 - t) * 60);
+                    } else {
+                        r = Math.round(68 + t * 187);
+                        g = Math.round(1 + t * 220);
+                        b = Math.round(84 + (1 - t) * 171);
+                    }
+                    const idx = (i * cols + j) * 4;
+                    img.data[idx] = r;
+                    img.data[idx + 1] = g;
+                    img.data[idx + 2] = b;
+                    img.data[idx + 3] = 255;
+                }
+            }
+            ctx.putImageData(img, 0, 0);
+        }
+
+        function drawLineChart(canvas, data, color = "#4af") {
+            if (!canvas || !data?.length) return;
+            const ctx = canvas.getContext("2d");
+            const W = canvas.width || 300;
+            const H = canvas.height || 50;
+            canvas.width = W;
+            canvas.height = H;
+            ctx.clearRect(0, 0, W, H);
+            const min = Math.min(...data);
+            const max = Math.max(...data);
+            const range = max - min || 1;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            data.forEach((v, i) => {
+                const x = (i / (data.length - 1)) * W;
+                const y = H - ((v - min) / range) * H;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+            ctx.strokeStyle = "#1e3a52";
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(0, H / 2);
+            ctx.lineTo(W, H / 2);
+            ctx.stroke();
+        }
+
+        function drawCopulaScatter(canvas, u, v, rho) {
+            if (!canvas || !u?.length) return;
+            const ctx = canvas.getContext("2d");
+            const S = 100;
+            canvas.width = S;
+            canvas.height = S;
+            ctx.fillStyle = "#05090e";
+            ctx.fillRect(0, 0, S, S);
+            for (let i = 0; i < u.length; i++) {
+                const x = u[i] * S;
+                const y = (1 - v[i]) * S;
+                const hue = 200 + rho * 60;
+                ctx.fillStyle = `hsla(${hue}, 70%, 60%, 0.4)`;
+                ctx.fillRect(x, y, 2, 2);
+            }
+            ctx.fillStyle = "#8ab8cc";
+            ctx.font = "8px 'JetBrains Mono'";
+            ctx.fillText(`ρ=${rho.toFixed(2)}`, 2, 10);
+        }
+
+        function drawEigenPlot(canvas, eigsArr, qVal) {
+            if (!canvas || !eigsArr?.length) return;
+            const ctx = canvas.getContext("2d");
+            const W = 280;
+            const H = 80;
+            canvas.width = W;
+            canvas.height = H;
+            ctx.fillStyle = "#05090e";
+            ctx.fillRect(0, 0, W, H);
+            const mpEdge = marchenkoPastur(qVal);
+            const maxE = Math.max(...eigsArr, mpEdge * 1.3);
+            const mpX = (mpEdge / maxE) * W;
+            ctx.strokeStyle = "#ff5e1a";
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(mpX, 0);
+            ctx.lineTo(mpX, H);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = "#ff5e1a";
+            ctx.font = "9px 'JetBrains Mono'";
+            ctx.fillText(`MP: ${mpEdge.toFixed(2)}`, mpX + 2, 12);
+            eigsArr.forEach((e, i) => {
+                const x = (e / maxE) * W;
+                const isSignal = e > mpEdge;
+                ctx.beginPath();
+                ctx.arc(x, H / 2, 5, 0, Math.PI * 2);
+                ctx.fillStyle = isSignal ? "#39ff84" : "#3d6880";
+                ctx.fill();
+                ctx.fillStyle = "#d4edf7";
+                ctx.font = "8px 'JetBrains Mono'";
+                ctx.fillText(e.toFixed(2), x - 10, H / 2 + 18);
+            });
+        }
+
+        function drawGirosRhythm(canvas, riskVecData, wSize) {
+            if (!canvas || !riskVecData?.length) return;
+            const ctx = canvas.getContext("2d");
+            const W = 360;
+            const H = 180;
+            canvas.width = W;
+            canvas.height = H;
+            ctx.fillStyle = "#030608";
+            ctx.fillRect(0, 0, W, H);
+            const cx = W / 2,
+                cy = H / 2,
+                baseR = 50;
+            riskVecData.forEach((risk, t) => {
+                const angle = (t / riskVecData.length) * Math.PI * 2 - Math.PI / 2;
+                const deform = 1 + risk * 0.8;
+                const r = baseR * deform;
+                const x = cx + r * Math.cos(angle);
+                const y = cy + r * Math.sin(angle);
+                ctx.beginPath();
+                ctx.arc(x, y, 2 + risk * 4, 0, Math.PI * 2);
+                const hue = 200 - risk * 140;
+                ctx.fillStyle = `hsla(${hue}, 80%, 60%, 0.6)`;
+                ctx.fill();
+            });
+            const meanRisk = riskVecData.reduce((s, v) => s + v, 0) / riskVecData.length;
+            ctx.beginPath();
+            for (let i = 0; i <= 64; i++) {
+                const a = (i / 64) * Math.PI * 2;
+                const noise = 1 + meanRisk * 0.5 * Math.sin(a * 3);
+                const rr = baseR * noise;
+                const x = cx + rr * Math.cos(a);
+                const y = cy + rr * Math.sin(a) * 0.6;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.strokeStyle = `hsla(${200 - meanRisk * 140}, 80%, 70%, 0.4)`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.fillStyle = "#8ab8cc";
+            ctx.font = "10px 'JetBrains Mono'";
+            ctx.fillText(`Risk μ: ${meanRisk.toFixed(3)} | w=${wSize}`, 8, 14);
+        }
+
+        function drawBayesDist(canvas, postAlpha, postBeta) {
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            const W = 260;
+            const H = 50;
+            canvas.width = W;
+            canvas.height = H;
+            ctx.fillStyle = "#05090e";
+            ctx.fillRect(0, 0, W, H);
+            const steps = 40;
+            const vals = [];
+            for (let i = 0; i < steps; i++) {
+                const theta = (i + 0.5) / steps;
+                const lnB = lgamma(postAlpha) + lgamma(postBeta) - lgamma(postAlpha + postBeta);
+                vals.push(Math.exp((postAlpha - 1) * Math.log(Math.max(0.001, theta)) + (postBeta - 1) * Math.log(Math.max(
+                    0.001, 1 - theta)) - lnB));
+            }
+            const maxV = Math.max(...vals, 0.001);
+            for (let i = 0; i < steps; i++) {
+                const h = (vals[i] / maxV) * H;
+                const x = (i / steps) * W;
+                const w = W / steps;
+                ctx.fillStyle = `hsl(${200 + i * 3}, 70%, 55%)`;
+                ctx.fillRect(x, H - h, w, h);
+            }
+        }
+
+        // ── UI UPDATE ──
+        function updateAllUI() {
+            const windowEnd = Math.min(windowStart + windowSize, N_TOTAL);
+            const nVA = vaParams.length;
+            document.getElementById('lbl-w').textContent = windowSize;
+            document.getElementById('lbl-t0').textContent = windowStart;
+            document.getElementById('info-n').textContent = windowEnd - windowStart;
+            document.getElementById('info-q').textContent = q.toFixed(3);
+            document.getElementById('pill-win-val').textContent = windowSize;
+            document.getElementById('pill-q-val').textContent = q.toFixed(3);
+            document.getElementById('pill-l1-val').textContent = eigs[0]?.toFixed(3) || '—';
+            const mpEdge = marchenkoPastur(q);
+            document.getElementById('pill-mp-val').textContent = mpEdge.toFixed(3);
+            const riskMean = riskVec.length ? (riskVec.reduce((s, v) => s + v, 0) / riskVec.length) : 0;
+            document.getElementById('pill-risk-top-val').textContent = riskMean.toFixed(3);
+            const riskPill = document.getElementById('pill-risk-top');
+            riskPill.className = 'spill ' + (riskMean > 0.5 ? 'warn' : 'active');
+
+            // Bayes
+            const postAlpha = bayesPrior.alpha + successes;
+            const postBeta = bayesPrior.beta + (observations - successes);
+            const postMean = postAlpha / (postAlpha + postBeta);
+            const postVar = (postAlpha * postBeta) / ((postAlpha + postBeta) ** 2 * (postAlpha + postBeta + 1));
+            document.getElementById('bayes-post-a').textContent = postAlpha.toFixed(1);
+            document.getElementById('bayes-post-b').textContent = postBeta.toFixed(1);
+            document.getElementById('bayes-mean').textContent = postMean.toFixed(4);
+            document.getElementById('bayes-var-val').textContent = postVar.toFixed(6);
+            document.getElementById('lbl-alpha').textContent = bayesPrior.alpha.toFixed(1);
+            document.getElementById('lbl-beta').textContent = bayesPrior.beta.toFixed(1);
+            document.getElementById('lbl-obs').textContent = observations;
+            document.getElementById('lbl-succ').textContent = successes;
+            document.getElementById('slider-succ').max = observations;
+            drawBayesDist(document.getElementById('bayes-dist-canvas'), postAlpha, postBeta);
+
+            // Right panel: eigenvalues
+            const eTotal = eigs.reduce((s, v) => s + v, 1e-9);
+            const epct = eigs.map(v => v / eTotal);
+            const eigenDisplay = document.getElementById('eigen-display');
+            const colors = ['var(--c1)', 'var(--c4)', 'var(--c2)'];
+            const cls = ['e1', 'e2', 'e3'];
+            eigenDisplay.innerHTML = eigs.slice(0, 3).map((e, i) => `
+            <div class="eigen-row ${cls[i]||'e1'}">
+              <div class="eigen-label" style="color:${colors[i]||'var(--c1)'}">λ${i+1}</div>
+              <div class="eigen-track"><div class="eigen-fill" style="width:${(epct[i]*100).toFixed(1)}%"></div></div>
+              <div class="eigen-val">${e.toFixed(3)}</div>
+              <div class="eigen-pct">${(epct[i]*100).toFixed(0)}%</div>
+            </div>`).join('');
+            document.getElementById('mp-edge-val').textContent = mpEdge.toFixed(3);
+            document.getElementById('delta-l1-val').textContent = (eigs.length > 1 ? Math.abs(eigs[0] - (eigs[1] || 0))
+                .toFixed(4) : '—');
+            const signalCount = eigs.filter(e => e > mpEdge).length;
+            document.getElementById('signal-count').textContent = signalCount;
+            const entropy = epct.reduce((s, p) => p > 0 ? s - p * Math.log2(p) : s, 0) / Math.log2(Math.max(2, epct.length));
+            document.getElementById('pca-entropy').textContent = entropy.toFixed(4);
+            // Regime
+            let regime = 'estable';
+            if (signalCount >= 3) regime = 'coherente';
+            else if (signalCount === 2) regime = 'transición';
+            else if (signalCount === 0) regime = 'caótico';
+            const rb = document.getElementById('regime-badge-r');
+            const regMap = { estable: 'stable', coherente: 'coherent', transición: 'transition', caótico: 'chaotic' };
+            rb.className = 'regime-badge ' + (regMap[regime] || 'stable');
+            rb.textContent = regime.toUpperCase();
+
+            // Risk
+            document.getElementById('risk-mean').textContent = riskMean.toFixed(4);
+            document.getElementById('risk-max').textContent = (riskVec.length ? Math.max(...riskVec) : 0).toFixed(4);
+            drawLineChart(document.getElementById('risk-line-canvas'), riskVec.length ? riskVec : [0], '#ff5e1a');
+
+            // Majorization
+            const majDisplay = document.getElementById('maj-display');
+            const maxMaj = Math.max(...majVectors.flat(), 1);
+            majDisplay.innerHTML = majVectors.map((vec, vi) => `
+            <div style="font-size:8px;color:var(--muted);margin-bottom:4px">${vaParams[vi]?.name||'?'}</div>
+            ${vec.map((v,i)=>`
+              <div class="maj-row">
+                <div class="maj-bar" style="width:${Math.round((v/maxMaj)*80)}px;background:hsl(${200+vi*40},70%,50%)"></div>
+                <div class="maj-val">${v.toFixed(2)}</div>
+              </div>`).join('')}
+          `).join('');
+
+            // Render active module
+            renderModule();
+        }
+
+        function renderModule() {
+            const content = document.getElementById('module-content');
+            const windowEnd = Math.min(windowStart + windowSize, N_TOTAL);
+            const mpEdge = marchenkoPastur(q);
+
+            if (activeModule === 'heatmap') {
+                content.innerHTML = `
+              <div class="section-title">FIRMA ESPECTRAL <em>· Heatmaps</em></div>
+              <div id="heatmaps-container"></div>
+              <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px" id="linecharts-container"></div>
+            `;
+                const hc = document.getElementById('heatmaps-container');
+                windowed.forEach((row, i) => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'canvas-wrap';
+                    wrap.style.marginBottom = '4px';
+                    const title = document.createElement('div');
+                    title.style.cssText =
+                        'font-size:9px;color:var(--dim);letter-spacing:1px;padding:2px 6px';
+                    title.textContent = `${vaParams[i].name} — serie temporal`;
+                    const c = document.createElement('canvas');
+                    c.style.height = '32px';
+                    c.onclick = () => audio.sonifyHeatmap([
+                        [row]
+                    ], 2);
+                    wrap.appendChild(title);
+                    wrap.appendChild(c);
+                    hc.appendChild(wrap);
+                    setTimeout(() => drawHeatmap(c, [row], '', 'diverge'), 10);
+                });
+                const lc = document.getElementById('linecharts-container');
+                windowed.forEach((s, i) => {
+                    const c = document.createElement('canvas');
+                    c.style.cssText = 'width:200px;height:45px;border:1px solid var(--bord);border-radius:2px';
+                    const lbl = document.createElement('div');
+                    lbl.style.cssText = 'font-size:8px;color:var(--dim);letter-spacing:1px';
+                    lbl.textContent = vaParams[i].name;
+                    const wrap = document.createElement('div');
+                    wrap.appendChild(lbl);
+                    wrap.appendChild(c);
+                    lc.appendChild(wrap);
+                    setTimeout(() => drawLineChart(c, s, vaParams[i].color), 10);
+                });
+            } else if (activeModule === 'corr') {
+                content.innerHTML = `
+              <div class="section-title">MATRIZ DE CORRELACIÓN <em>· Pearson + DS</em></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div>
+                  <div style="font-size:9px;color:var(--dim);margin-bottom:4px">Pearson</div>
+                  <canvas id="corr-canvas" style="width:100%;height:120px;border:1px solid var(--bord)"></canvas>
+                </div>
+                <div>
+                  <div style="font-size:9px;color:var(--dim);margin-bottom:4px">Doblemente Estocástica</div>
+                  <canvas id="ds-canvas" style="width:100%;height:120px;border:1px solid var(--bord)"></canvas>
+                </div>
+              </div>
+              <div style="margin-top:8px;font-size:9px;color:var(--muted);line-height:1.6">
+                Mayorización x≻y sobre filas DS mide dispersión de correlación vectorial.<br>
+                Fila uniforme → más dispersa. Fila concentrada → correlación fuerte entre pares.
+              </div>
+            `;
+                setTimeout(() => {
+                    drawHeatmap(document.getElementById('corr-canvas'), corrMatrix, '', 'diverge');
+                    drawHeatmap(document.getElementById('ds-canvas'), dsMatrix, '', 'heat');
+                }, 10);
+            } else if (activeModule === 'copulas') {
+                content.innerHTML = `
+              <div class="section-title">CÓPULAS <em>· Márgenes uniformes (PIT)</em></div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px" id="copula-scatters"></div>
+              <canvas id="ds-heat-copula" style="width:100%;height:60px;margin-top:8px;border:1px solid var(--bord)"></canvas>
+            `;
+                const cs = document.getElementById('copula-scatters');
+                for (let i = 0; i < vaParams.length; i++) {
+                    for (let j = i + 1; j < vaParams.length; j++) {
+                        const rho = corrMatrix[i][j];
+                        const wrap = document.createElement('div');
+                        wrap.style.textAlign = 'center';
+                        const lbl = document.createElement('div');
+                        lbl.style.cssText = 'font-size:8px;color:var(--dim);margin-bottom:2px';
+                        lbl.textContent = `${vaParams[i].name}×${vaParams[j].name}`;
+                        const c = document.createElement('canvas');
+                        c.style.cssText = 'width:100px;height:100px;border:1px solid var(--bord)';
+                        wrap.appendChild(lbl);
+                        wrap.appendChild(c);
+                        cs.appendChild(wrap);
+                        setTimeout(() => drawCopulaScatter(c, uniforms[i], uniforms[j], rho), 10);
+                    }
+                }
+                setTimeout(() => drawHeatmap(document.getElementById('ds-heat-copula'), dsMatrix, '', 'heat'), 10);
+            } else if (activeModule === 'eigen') {
+                content.innerHTML = `
+              <div class="section-title">EIGENVALUES <em>· Marchenko-Pastur</em></div>
+              <canvas id="eigen-plot-canvas" style="width:100%;height:80px;border:1px solid var(--bord)"></canvas>
+              <div style="margin-top:6px;font-size:9px;color:var(--text)" id="eigen-detail"></div>
+              <div style="margin-top:6px;font-size:9px;color:var(--muted);line-height:1.7">
+                Borde MP λ₊ = σ²(1+√q)² con q=${q.toFixed(3)}.<br>
+                Eigenvalores sobre λ₊ = estructura de señal real.<br>
+                H₀: todos los eigenvalores son ruido (correlación nula).
+              </div>
+            `;
+                setTimeout(() => drawEigenPlot(document.getElementById('eigen-plot-canvas'), eigs, q), 10);
+                document.getElementById('eigen-detail').innerHTML = eigs.map((e, i) => {
+                    const isSignal = e > mpEdge;
+                    return `<span style="margin-right:10px;color:${isSignal?'#39ff84':'#3d6880'}">λ${i+1}=${e.toFixed(3)}${isSignal?' ★':' ◯'}</span>`;
+                }).join('');
+            } else if (activeModule === 'giros') {
+                content.innerHTML = `
+              <div class="section-title">GIROS RHYTHM <em>· Variaciones Schur-convexas</em></div>
+              <canvas id="giros-canvas" style="width:100%;height:180px;border:1px solid var(--bord)"></canvas>
+              <canvas id="risk-line-big" style="width:100%;height:50px;margin-top:6px;border:1px solid var(--bord)"></canvas>
+              <div style="margin-top:6px;font-size:9px;color:var(--muted);line-height:1.6">
+                Cada punto = sub-ventana. Riesgo = proporción λ sobre MP + magnitud λ₁.<br>
+                Lenteja se deforma según riesgo medio. Schur-convexidad: f(x)≥f(y) si x≻y.
+              </div>
+            `;
+                setTimeout(() => {
+                    drawGirosRhythm(document.getElementById('giros-canvas'), riskVec, windowSize);
+                    drawLineChart(document.getElementById('risk-line-big'), riskVec.length ? riskVec : [0],
+                        '#ff5e1a');
+                }, 10);
+            }
+        }
+
+        // ── EVENTS ──
+        document.getElementById('slider-w').oninput = function() {
+            windowSize = +this.value;
+            document.getElementById('slider-t0').max = N_TOTAL - windowSize;
+            if (windowStart > N_TOTAL - windowSize) {
+                windowStart = Math.max(0, N_TOTAL - windowSize);
+                document.getElementById('slider-t0').value = windowStart;
+            }
+            recomputeAll();
+        };
+        document.getElementById('slider-t0').oninput = function() {
+            windowStart = +this.value;
+            recomputeAll();
+        };
+        document.getElementById('slider-alpha').oninput = function() {
+            bayesPrior.alpha = +this.value;
+            recomputeAll();
+        };
+        document.getElementById('slider-beta').oninput = function() {
+            bayesPrior.beta = +this.value;
+            recomputeAll();
+        };
+        document.getElementById('slider-obs').oninput = function() {
+            observations = +this.value;
+            if (successes > observations) successes = observations;
+            document.getElementById('slider-succ').max = observations;
+            document.getElementById('slider-succ').value = successes;
+            recomputeAll();
+        };
+        document.getElementById('slider-succ').oninput = function() {
+            successes = +this.value;
+            recomputeAll();
+        };
+
+        document.getElementById('module-tabs').addEventListener('click', function(e) {
+            if (e.target.classList.contains('module-tab')) {
+                document.querySelectorAll('.module-tab').forEach(t => t.classList.remove('sel'));
+                e.target.classList.add('sel');
+                activeModule = e.target.dataset.mod;
+                renderModule();
+            }
+        });
+
+        document.getElementById('btn-sonify-heat').onclick = () => {
+            audio.sonifyHeatmap(windowed, 4);
+            document.getElementById('sonic-pill-r').classList.add('active');
+            document.getElementById('sonic-info-r').textContent = 'Reproduciendo heatmap...';
+            setTimeout(() => {
+                document.getElementById('sonic-pill-r').classList.remove('active');
+                document.getElementById('sonic-info-r').textContent = 'Inactivo';
+            }, 4500);
+        };
+        document.getElementById('btn-sonify-rhythm').onclick = () => {
+            if (riskVec.length) {
+                audio.sonifyRhythm(riskVec, 3);
+                document.getElementById('sonic-pill-r').classList.add('active');
+                document.getElementById('sonic-info-r').textContent = 'Reproduciendo rhythm...';
+                setTimeout(() => {
+                    document.getElementById('sonic-pill-r').classList.remove('active');
+                    document.getElementById('sonic-info-r').textContent = 'Inactivo';
+                }, 3500);
+            }
+        };
+        document.getElementById('btn-stop').onclick = () => {
+            audio.stop();
+            document.getElementById('sonic-pill-r').classList.remove('active');
+            document.getElementById('sonic-info-r').textContent = 'Inactivo';
+        };
+
+        // ── VA CONFIGS ──
+        function renderVAConfigs() {
+            const container = document.getElementById('va-configs');
+            container.innerHTML = vaParams.map((va, i) => `
+            <div style="margin-bottom:8px;background:var(--bg3);padding:6px;border-radius:2px;border-left:2px solid ${va.color}">
+              <div style="color:${va.color};font-weight:700;margin-bottom:4px;font-size:10px">${va.name}</div>
+              <label style="font-size:8px">tipo:
+                <select data-va="${i}" data-key="type">
+                  <option value="ar1" ${va.type==='ar1'?'selected':''}>AR(1)</option>
+                  <option value="seasonal" ${va.type==='seasonal'?'selected':''}>Estacional</option>
+                </select>
+              </label>
+              <label style="font-size:8px">φ=${va.phi.toFixed(2)}
+                <input type="range" min="-0.99" max="0.99" step="0.01" value="${va.phi}" data-va="${i}" data-key="phi">
+              </label>
+              <label style="font-size:8px">σ=${va.sigma.toFixed(2)}
+                <input type="range" min="0.1" max="3" step="0.1" value="${va.sigma}" data-va="${i}" data-key="sigma">
+              </label>
+              <label style="font-size:8px">μ=${va.mu.toFixed(2)}
+                <input type="range" min="-2" max="2" step="0.1" value="${va.mu}" data-va="${i}" data-key="mu">
+              </label>
+              ${va.type==='seasonal'?`
+              <label style="font-size:8px">T=${va.period}
+                <input type="range" min="5" max="60" step="1" value="${va.period}" data-va="${i}" data-key="period">
+              </label>`:''}
+              <label style="font-size:8px">trend=${va.trend.toFixed(3)}
+                <input type="range" min="-0.02" max="0.02" step="0.001" value="${va.trend}" data-va="${i}" data-key="trend">
+              </label>
+            </div>
+          `).join('');
+
+            container.querySelectorAll('input[type=range], select').forEach(el => {
+                el.addEventListener('input', function() {
+                    const i = +this.dataset.va;
+                    const key = this.dataset.key;
+                    const val = key === 'type' ? this.value : +this.value;
+                    vaParams[i] = { ...vaParams[i], [key]: val };
+                    recomputeAll();
+                    renderVAConfigs();
+                });
+            });
+        }
+
+        // ── INIT ──
+        function init() {
+            document.getElementById('slider-t0').max = N_TOTAL - windowSize;
+            renderVAConfigs();
+            recomputeAll();
+            renderModule();
+        }
+        init();
+
+        console.log('∑ Stochastic Laboratory — Listo. Majorización · Cópulas · Espectral · Sonificación.');
+    </script>
+</body>
+</html>

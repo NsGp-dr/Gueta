@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>∑ Observatorio Estocástico · Geodésicas · Cópulas · Resonancia</title>
+    <style>
+        /* ========== ESTILOS HEREDADOS DE STOCHASTIC LAB ========== */
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+        :root {
+            --bg: #030608;
+            --bg2: #05090e;
+            --bg3: #070d14;
+            --bord: #0c1e2c;
+            --bord2: #132840;
+            --c1: #00c8e0;
+            --c2: #39ff84;
+            --c3: #ff5e1a;
+            --c4: #b06aff;
+            --c5: #ffe066;
+            --dim: #1e3a52;
+            --muted: #3d6880;
+            --text: #8ab8cc;
+            --bright: #d4edf7;
+            --risk-h: #ff3b3b;
+            --glow1: rgba(0, 200, 224, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        /* Grid de fondo (estilo lab) */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 200, 224, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 200, 224, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .portal {
+            position: relative;
+            z-index: 2;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        /* Header tipo topbar */
+        .topbar {
+            background: var(--bg2);
+            border: 1px solid var(--bord);
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-bottom: 2rem;
+            border-radius: 2px;
+        }
+        .logo-mark {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.3rem;
+            letter-spacing: 4px;
+            color: var(--c1);
+            text-shadow: 0 0 12px rgba(0, 200, 224, 0.4);
+        }
+        .logo-mark small {
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            color: var(--muted);
+            display: block;
+            line-height: 1;
+        }
+        .status-pill {
+            background: var(--bg3);
+            border: 1px solid var(--bord);
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--c2);
+            border-radius: 50%;
+            box-shadow: 0 0 4px var(--c2);
+            animation: blink 2s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        /* Grid de tarjetas - mismas clases que los módulos del lab */
+        .cards-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+        .card {
+            background: var(--bg2);
+            border: 1px solid var(--bord);
+            border-radius: 4px;
+            width: 280px;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(2px);
+        }
+        .card:hover {
+            border-color: var(--c1);
+            transform: translateY(-3px);
+            box-shadow: 0 0 12px var(--glow1);
+        }
+        .card h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--c1);
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+        }
+        .card .tag {
+            font-size: 0.6rem;
+            color: var(--c4);
+            border-left: 2px solid var(--c4);
+            padding-left: 6px;
+            margin-bottom: 1rem;
+            letter-spacing: 1px;
+        }
+        .card p {
+            font-size: 0.7rem;
+            line-height: 1.5;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+        .feature-list {
+            font-size: 0.65rem;
+            margin: 1rem 0;
+            color: var(--muted);
+        }
+        .feature-list span {
+            display: block;
+            margin: 5px 0;
+            padding-left: 12px;
+            position: relative;
+        }
+        .feature-list span::before {
+            content: "⌾";
+            position: absolute;
+            left: 0;
+            color: var(--c3);
+        }
+        .btn {
+            background: none;
+            border: 1px solid var(--dim);
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            padding: 6px 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.15s;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .btn:hover {
+            border-color: var(--c1);
+            color: var(--c1);
+            box-shadow: 0 0 8px rgba(0,200,224,0.2);
+        }
+        .btn-primary {
+            border-color: var(--c1);
+            color: var(--c1);
+        }
+        footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.6rem;
+            color: var(--dim);
+            border-top: 1px solid var(--bord);
+            padding-top: 1rem;
+        }
+        @media (max-width: 700px) {
+            .card { width: 100%; max-width: 320px; }
+            .topbar { flex-direction: column; align-items: center; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="portal">
+    <div class="topbar">
+        <div class="logo-mark">∑ OBSERVATORIO<small>GEODÉSICAS · CÓPULAS</small></div>
+        <div class="status-pill"><div class="dot"></div> SISTEMA ACTIVO · VARIEDADES INVARIANTES</div>
+    </div>
+
+    <div class="cards-grid">
+        <!-- GUETA RHYTHM (análisis multivariado + geometrías) -->
+        <div class="card">
+            <h2>GUETA RHYTHM</h2>
+            <div class="tag">MULTIVARIADO · CLIFFORD · TORO</div>
+            <p>Análisis estocástico de series temporales. Matriz de correlación, cópula dinámica, eigenvalores y curvas invariantes (Clifford, Lissajous). Sonificación armónica en tiempo real.</p>
+            <div class="feature-list">
+                <span>ventana temporal deslizante</span>
+                <span>mapa de calor + cópula bivariada</span>
+                <span>atractor de Clifford reactivo</span>
+                <span>audio espectral controlable</span>
+            </div>
+            <a href="GuetaRythm.html" class="btn btn-primary">⟡ EXPLORAR ⟡</a>
+        </div>
+
+        <!-- STOCHASTIC LAB (laboratorio didáctico) -->
+        <div class="card">
+            <h2>STOCHASTIC LAB</h2>
+            <div class="tag">MODELOS · ESPECTRAL · BAYES</div>
+            <p>Laboratorio interactivo para comprender majorización, cópulas, espectro de eigenvalores, riesgo estocástico y sonificación. Controla parámetros AR, ventanas y prioris bayesianos en tiempo real.</p>
+            <div class="feature-list">
+                <span>series AR(1) y estacionales</span>
+                <span>matriz de correlación y doblemente estocástica</span>
+                <span>criterio de Marchenko–Pastur</span>
+                <span>sonificación de riesgo y heatmaps</span>
+                <span>inferencia beta-binomial</span>
+            </div>
+            <a href="StochasticLab.html" class="btn btn-primary">📡 ACCEDER</a>
+        </div>
+
+        <!-- CLIFFORD MEMBRANE (geometrías puras) -->
+        <div class="card">
+            <h2>CLIFFORD MEMBRANE</h2>
+            <div class="tag">CLIFFORD · TORO · LISSAJOUS</div>
+            <p>Exploración pura de variedades invariantes. El atractor de Clifford, las geodésicas del toro y las curvas de Lissajous reaccionan a parámetros estocásticos (eigenvalores, riesgo).</p>
+            <div class="feature-list">
+                <span>modos visuales dedicados</span>
+                <span>control de parámetros sintéticos</span>
+                <span>histórico de autovalores</span>
+                <span>interfaz minimalista y directa</span>
+            </div>
+            <a href="Clifford_Membrane.html" class="btn btn-primary">◉ INGRESAR</a>
+        </div>
+    </div>
+
+    <footer>
+        <span>∑ observatorio estocástico geodésico — síntesis basada en variedades y decisión en tiempo real</span><br>
+        <span style="font-size: 0.55rem;">majorización · cópulas · marchenko–pastur · sonificación armónica</span>
+    </footer>
+</div>
+</body>
+</html>
