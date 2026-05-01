@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>GUETA · TURING · La naturaleza oculta de la coherencia</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@300;400;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
+
+:root {
+  --bg:     #020507;
+  --bg2:    #030a0f;
+  --bg3:    #040d14;
+  --bord:   #091820;
+  --bord2:  #0f2535;
+  --c1:     #00ffe0;   /* activador */
+  --c2:     #ff2d6b;   /* inhibidor */
+  --c3:     #ffe14d;   /* riesgo */
+  --c4:     #7b4fff;   /* eigenvalue */
+  --c5:     #00ff99;   /* confianza */
+  --dim:    #12303f;
+  --muted:  #2d5a6b;
+  --text:   #6fa8bd;
+  --bright: #c8e8f2;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; user-select:none; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inconsolata', monospace;
+  font-size: 11px;
+  overflow: hidden;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 44px 1fr 26px;
+  grid-template-columns: 260px 1fr 1fr 240px;
+}
+
+/* HEADER */
+header {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 12px;
+  border-bottom: 1px solid var(--bord);
+  background: linear-gradient(90deg, #020507 0%, #04090e 100%);
+  position: relative;
+  overflow: hidden;
+}
+header::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background: repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(0,255,224,0.015) 60px, rgba(0,255,224,0.015) 61px);
+  pointer-events:none;
+}
+
+.logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px;
+  color: var(--c1);
+  text-shadow: 0 0 20px rgba(0,255,224,0.4);
+  letter-spacing: 2px;
+  flex-shrink: 0;
+}
+.logo em { color: var(--c2); font-style: italic; }
+.logo sub { font-size: 9px; letter-spacing: 3px; color: var(--muted); font-family: 'Inconsolata', monospace; }
+
+.vsep { width:1px; height:22px; background:var(--bord2); flex-shrink:0; }
+
+.pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border: 1px solid var(--bord2);
+  background: var(--bg3); border-radius: 2px;
+  font-size: 8px; letter-spacing: 1.5px; color: var(--muted);
+  cursor: pointer; transition: all 0.15s;
+}
+.pill:hover { border-color: var(--c1); color: var(--c1); }
+.pill.active { border-color: var(--c1); color: var(--c1); background: rgba(0,255,224,0.06); }
+.pill.danger { border-color: var(--c2); color: var(--c2); }
+.pill .dot { width:5px; height:5px; border-radius:50%; background: var(--dim); flex-shrink:0; }
+.pill.active .dot { background:var(--c1); box-shadow:0 0 6px var(--c1); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.header-sep { flex:1; }
+
+/* INPUT ZONE */
+.input-zone {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3); padding: 3px 10px;
+  border: 1px solid var(--bord2); border-radius: 2px;
+}
+.input-zone span { font-size: 8px; color: var(--muted); letter-spacing: 1.5px; }
+.input-zone input[type=file] { display:none; }
+.input-zone label { cursor: pointer; color: var(--c3); font-size: 8px; letter-spacing:1.5px; }
+.input-zone label:hover { color: var(--bright); }
+#img-thumb { width:22px; height:22px; border:1px solid var(--dim); object-fit:cover; display:none; }
+
+/* LEFT PANEL — controles RD */
+.left {
+  grid-row:2; grid-column:1;
+  border-right: 1px solid var(--bord);
+  background: var(--bg2);
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px;
+}
+.card {
+  background: rgba(2,8,12,0.7);
+  border: 1px solid var(--bord);
+  border-radius: 3px;
+  padding: 8px;
+}
+.card-title {
+  font-size: 8px; letter-spacing: 2.5px; color: var(--c4);
+  margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.card-title::before { content:''; width:8px; height:1px; background:var(--c4); }
+.row { margin: 5px 0; }
+.row label { font-size: 7.5px; color: var(--muted); display:flex; justify-content:space-between; margin-bottom: 2px; }
+.row label span { color: var(--bright); }
+input[type=range] { width:100%; accent-color: var(--c1); background: var(--bg); }
+.row-2col { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+
+.mode-btn-group { display:flex; flex-wrap:wrap; gap:4px; }
+.mode-btn {
+  font-family: 'Inconsolata', monospace;
+  font-size: 7.5px; letter-spacing: 1.5px; padding: 3px 7px;
+  border: 1px solid var(--dim); color: var(--dim);
+  background: none; cursor: pointer; border-radius: 2px; transition: all 0.15s;
+}
+.mode-btn:hover { border-color: var(--c4); color: var(--c4); }
+.mode-btn.sel { border-color: var(--c4); color: var(--c4); background: rgba(123,79,255,0.1); }
+
+.badge { font-size:7px; padding:2px 5px; border:1px solid var(--dim); border-radius:10px; }
+.badge.act { border-color:var(--c5); color:var(--c5); }
+.badge.inh { border-color:var(--c2); color:var(--c2); }
+
+/* RD CANVAS */
+.rd-panel {
+  grid-row:2; grid-column:2;
+  position: relative; background: var(--bg); overflow: hidden;
+}
+#rd-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; image-rendering: pixelated; }
+.rd-hud {
+  position:absolute; top:8px; left:8px;
+  font-size: 8px; background: rgba(2,5,7,0.75);
+  padding: 5px 8px; border-radius: 2px; pointer-events:none;
+  border: 1px solid var(--bord2); backdrop-filter:blur(4px);
+  z-index: 10; line-height: 1.8;
+}
+.rd-overlay-label {
+  position: absolute; bottom: 8px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 7.5px; letter-spacing: 2px; color: var(--muted);
+  pointer-events: none; z-index:10;
+}
+
+/* VIZ PANEL — lissajous + chladni + toro */
+.viz-panel {
+  grid-row:2; grid-column:3;
+  position: relative; background: var(--bg); overflow: hidden;
+  border-left: 1px solid var(--bord);
+  display: flex; flex-direction: column;
+}
+.viz-tabs {
+  display: flex; border-bottom: 1px solid var(--bord);
+  background: var(--bg2); flex-shrink: 0;
+}
+.vtab {
+  font-family: 'Inconsolata', monospace;
+  font-size: 7.5px; letter-spacing: 1.5px; padding: 5px 10px;
+  border: none; background: none; cursor: pointer;
+  color: var(--muted); border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.vtab:hover { color: var(--text); }
+.vtab.sel { color: var(--c1); border-bottom-color: var(--c1); }
+.viz-canvas-wrap { flex:1; position:relative; }
+#viz-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.viz-overlay {
+  position:absolute; bottom:8px; right:8px;
+  font-size:8px; background:rgba(2,5,7,0.7);
+  padding:4px 7px; border-radius:2px; line-height:1.7;
+  border:1px solid var(--bord); pointer-events:none;
+}
+
+/* RIGHT PANEL */
+.right {
+  grid-row:2; grid-column:4;
+  border-left: 1px solid var(--bord);
+  background: var(--bg2);
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px;
+}
+canvas.mini { width:100%; height:60px; background:var(--bg3); border:1px solid var(--bord); border-radius:2px; display:block; margin-top:4px; }
+.metric-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:4px; }
+.mval { background: var(--bg3); border:1px solid var(--bord); padding:5px; border-radius:2px; }
+.mval .lbl { font-size:7px; letter-spacing:1.5px; color:var(--muted); }
+.mval .val { font-size:13px; color:var(--bright); font-weight:700; margin-top:2px; }
+.gauge-track { height:3px; background:var(--bord); border-radius:2px; margin:4px 0; overflow:hidden; }
+.gauge-fill { height:100%; border-radius:2px; transition: width 0.4s; }
+
+/* FOOTER */
+footer {
+  grid-column:1/-1;
+  display:flex; align-items:center; gap:16px;
+  padding: 0 12px; border-top:1px solid var(--bord);
+  background: var(--bg2); font-size: 8px;
+  overflow:hidden;
+}
+.ft-item { display:flex; gap:5px; align-items:center; white-space:nowrap; }
+.ft-item .k { color: var(--dim); letter-spacing:1px; }
+.ft-item .v { color: var(--c1); }
+.ft-scroll { animation: ftscroll 20s linear infinite; display:flex; gap:24px; }
+@keyframes ftscroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--dim); border-radius:2px; }
+
+/* Popover texto */
+.text-input-area {
+  width:100%; min-height:50px; max-height:80px;
+  background: var(--bg3); border:1px solid var(--bord2);
+  color: var(--bright); font-family:'Inconsolata',monospace; font-size:9px;
+  padding:5px; resize:vertical; border-radius:2px; outline:none;
+  line-height:1.5;
+}
+.text-input-area::placeholder { color: var(--dim); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<header>
+  <div class="logo">GUETA <em>·</em> TURING<br><sub>LA NATURALEZA OCULTA DE LA COHERENCIA</sub></div>
+  <div class="vsep"></div>
+
+  <div class="input-zone">
+    <span>IMAGEN</span>
+    <input type="file" id="img-file" accept="image/*">
+    <label for="img-file">⊕ CARGAR</label>
+    <img id="img-thumb" alt="">
+  </div>
+
+  <div class="input-zone">
+    <span>AUDIO</span>
+    <input type="file" id="audio-file" accept="audio/*">
+    <label for="audio-file">⊕ WAV/MP3</label>
+    <span id="audio-name" style="color:var(--dim);font-size:8px">—</span>
+  </div>
+
+  <div class="header-sep"></div>
+
+  <div class="pill" id="pill-rd"><div class="dot"></div>RD LOOP</div>
+  <div class="pill" id="pill-sync">SYNC·EIGEN</div>
+  <div class="pill danger" id="btn-sonify">▶ SONAR</div>
+  <div class="pill" id="btn-stop">■ STOP</div>
+</header>
+
+<!-- ══════════════════ LEFT ══════════════════ -->
+<div class="left">
+
+  <!-- PRESET TURING -->
+  <div class="card">
+    <div class="card-title">PRESETS TURING</div>
+    <div class="mode-btn-group" id="preset-group">
+      <button class="mode-btn sel" data-p="spots">MANCHAS</button>
+      <button class="mode-btn" data-p="stripes">RAYAS</button>
+      <button class="mode-btn" data-p="labyrinth">LABERINTO</button>
+      <button class="mode-btn" data-p="chaos">CAOS</button>
+      <button class="mode-btn" data-p="dots_on_stripes">PUNTOS·R</button>
+      <button class="mode-btn" data-p="hexagonal">HEXAGONAL</button>
+    </div>
+  </div>
+
+  <!-- PARÁMETROS RD -->
+  <div class="card">
+    <div class="card-title">REACCIÓN-DIFUSIÓN <span class="badge act">A</span><span class="badge inh">I</span></div>
+    <div class="row">
+      <label>Du — difusión activador<span id="v-Du">0.14</span></label>
+      <input type="range" id="sl-Du" min="0.01" max="0.5" step="0.005" value="0.14">
+    </div>
+    <div class="row">
+      <label>Dv — difusión inhibidor<span id="v-Dv">0.07</span></label>
+      <input type="range" id="sl-Dv" min="0.001" max="0.3" step="0.002" value="0.07">
+    </div>
+    <div class="row">
+      <label>f — feed rate<span id="v-f">0.055</span></label>
+      <input type="range" id="sl-f" min="0.01" max="0.12" step="0.001" value="0.055">
+    </div>
+    <div class="row">
+      <label>k — kill rate<span id="v-k">0.062</span></label>
+      <input type="range" id="sl-k" min="0.03" max="0.08" step="0.0005" value="0.062">
+    </div>
+    <div class="row">
+      <label>dt — paso tiempo<span id="v-dt">1.0</span></label>
+      <input type="range" id="sl-dt" min="0.1" max="2.0" step="0.05" value="1.0">
+    </div>
+    <div class="row">
+      <label>iter/frame<span id="v-iter">8</span></label>
+      <input type="range" id="sl-iter" min="1" max="30" step="1" value="8">
+    </div>
+  </div>
+
+  <!-- CANAL DE DATOS -->
+  <div class="card">
+    <div class="card-title">CANAL DE DATOS → RD</div>
+    <div class="row">
+      <label>Riesgo → f+<span id="v-risk-w">0.40</span></label>
+      <input type="range" id="sl-risk-w" min="0" max="1" step="0.01" value="0.40">
+    </div>
+    <div class="row">
+      <label>Confianza → Du−<span id="v-conf-w">0.30</span></label>
+      <input type="range" id="sl-conf-w" min="0" max="1" step="0.01" value="0.30">
+    </div>
+    <div class="row">
+      <label>Eigen → k+<span id="v-eigen-w">0.25</span></label>
+      <input type="range" id="sl-eigen-w" min="0" max="1" step="0.01" value="0.25">
+    </div>
+    <div class="row">
+      <label>Perturbación img<span id="v-img-w">0.20</span></label>
+      <input type="range" id="sl-img-w" min="0" max="1" step="0.01" value="0.20">
+    </div>
+  </div>
+
+  <!-- DATOS ESTOCÁSTICOS -->
+  <div class="card">
+    <div class="card-title">PROCESO ESTOCÁSTICO</div>
+    <div class="row">
+      <label>φ autoregresivo<span id="v-phi">0.80</span></label>
+      <input type="range" id="sl-phi" min="-0.99" max="0.99" step="0.01" value="0.80">
+    </div>
+    <div class="row">
+      <label>σ ruido<span id="v-sigma">0.30</span></label>
+      <input type="range" id="sl-sigma" min="0.05" max="2.0" step="0.05" value="0.30">
+    </div>
+    <div class="row">
+      <label>nVars<span id="v-nvars">4</span></label>
+      <input type="range" id="sl-nvars" min="2" max="8" step="1" value="4">
+    </div>
+    <button class="mode-btn sel" id="btn-reseed" style="width:100%;margin-top:6px">⟳ REGENERAR DATOS</button>
+  </div>
+
+  <!-- TEXTO LIBRE -->
+  <div class="card">
+    <div class="card-title">SEÑAL TEXTUAL</div>
+    <textarea class="text-input-area" id="text-input" placeholder="Texto → perturba el campo RD via hash de caracteres..."></textarea>
+    <button class="mode-btn sel" id="btn-apply-text" style="width:100%;margin-top:5px">⊕ APLICAR TEXTO</button>
+  </div>
+
+</div>
+
+<!-- ══════════════════ RD CANVAS ══════════════════ -->
+<div class="rd-panel">
+  <canvas id="rd-canvas"></canvas>
+  <div class="rd-hud" id="rd-hud">
+    <div>f: <span id="hud-f" style="color:var(--c1)">—</span> &nbsp; k: <span id="hud-k" style="color:var(--c2)">—</span></div>
+    <div>Du: <span id="hud-Du" style="color:var(--c4)">—</span> &nbsp; Dv: <span id="hud-Dv" style="color:var(--text)">—</span></div>
+    <div>t: <span id="hud-t" style="color:var(--c3)">0</span> &nbsp; iter: <span id="hud-iter" style="color:var(--c5)">—</span></div>
+  </div>
+  <div class="rd-overlay-label" id="rd-pattern-name">REACCIÓN-DIFUSIÓN · GRAY-SCOTT</div>
+</div>
+
+<!-- ══════════════════ VIZ PANEL ══════════════════ -->
+<div class="viz-panel">
+  <div class="viz-tabs">
+    <button class="vtab sel" data-v="lissajous">LISSAJOUS</button>
+    <button class="vtab" data-v="chladni">CHLADNI</button>
+    <button class="vtab" data-v="torus">GEODÉSICAS·TORO</button>
+  </div>
+  <div class="viz-canvas-wrap">
+    <canvas id="viz-canvas"></canvas>
+    <div class="viz-overlay" id="viz-info">—</div>
+  </div>
+</div>
+
+<!-- ══════════════════ RIGHT PANEL ══════════════════ -->
+<div class="right">
+
+  <div class="card">
+    <div class="card-title">ESTADO ESTOCÁSTICO</div>
+    <div class="metric-grid" id="metric-grid">
+      <div class="mval"><div class="lbl">RIESGO</div><div class="val" id="m-risk">—</div></div>
+      <div class="mval"><div class="lbl">CONFIANZA</div><div class="val" id="m-conf">—</div></div>
+      <div class="mval"><div class="lbl">ENTROPÍA</div><div class="val" id="m-ent">—</div></div>
+      <div class="mval"><div class="lbl">λ₁</div><div class="val" id="m-l1">—</div></div>
+    </div>
+    <div style="margin-top:6px;font-size:7.5px;color:var(--muted)">RIESGO</div>
+    <div class="gauge-track"><div class="gauge-fill" id="g-risk" style="background:var(--c2); width:0%"></div></div>
+    <div style="font-size:7.5px;color:var(--muted)">CONFIANZA</div>
+    <div class="gauge-track"><div class="gauge-fill" id="g-conf" style="background:var(--c5); width:0%"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">SERIE RIESGO</div>
+    <canvas class="mini" id="risk-mini"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title">EIGENVALORES</div>
+    <canvas class="mini" id="eigen-mini"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title">SÍNTESIS SONORA</div>
+    <div class="row">
+      <label>frec. base (Hz)<span id="v-fbase">80</span></label>
+      <input type="range" id="sl-fbase" min="40" max="400" step="5" value="80">
+    </div>
+    <div class="row">
+      <label>reverb<span id="v-rev">0.4</span></label>
+      <input type="range" id="sl-rev" min="0" max="1" step="0.05" value="0.4">
+    </div>
+    <div class="row">
+      <label>wave blend<span id="v-wblend">0.3</span></label>
+      <input type="range" id="sl-wblend" min="0" max="1" step="0.05" value="0.3">
+    </div>
+    <div style="margin-top:6px;font-size:8px;color:var(--c4)" id="audio-status">— inactivo —</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">MAPEO RD → PATRÓN</div>
+    <div style="font-size:8px;line-height:1.7;color:var(--muted)" id="rd-analysis">
+      Esperando datos...
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════ FOOTER ══════════════════ -->
+<footer>
+  <div class="ft-scroll" id="ft-scroll">
+    <div class="ft-item"><span class="k">GUETA</span><span class="v">TURING·REACT·DIFF</span></div>
+    <div class="ft-item"><span class="k">MODEL</span><span class="v">GRAY-SCOTT</span></div>
+    <div class="ft-item"><span class="k">RD·f</span><span class="v" id="ft-f">—</span></div>
+    <div class="ft-item"><span class="k">RD·k</span><span class="v" id="ft-k">—</span></div>
+    <div class="ft-item"><span class="k">RIESGO</span><span class="v" id="ft-risk">—</span></div>
+    <div class="ft-item"><span class="k">EIGENVALOR·λ₁</span><span class="v" id="ft-l1">—</span></div>
+    <div class="ft-item"><span class="k">VIZ</span><span class="v" id="ft-viz">LISSAJOUS</span></div>
+    <div class="ft-item"><span class="k">AUDIO</span><span class="v" id="ft-audio">listo</span></div>
+    <!-- duplicado para loop visual -->
+    <div class="ft-item"><span class="k">GUETA</span><span class="v">TURING·REACT·DIFF</span></div>
+    <div class="ft-item"><span class="k">MODEL</span><span class="v">GRAY-SCOTT</span></div>
+    <div class="ft-item"><span class="k">RD·f</span><span class="v" id="ft-f2">—</span></div>
+    <div class="ft-item"><span class="k">RD·k</span><span class="v" id="ft-k2">—</span></div>
+    <div class="ft-item"><span class="k">RIESGO</span><span class="v" id="ft-risk2">—</span></div>
+    <div class="ft-item"><span class="k">EIGENVALOR·λ₁</span><span class="v" id="ft-l12">—</span></div>
+    <div class="ft-item"><span class="k">VIZ</span><span class="v">LISSAJOUS</span></div>
+    <div class="ft-item"><span class="k">AUDIO</span><span class="v">COHERENCIA</span></div>
+  </div>
+</footer>
+
+<!-- ══════════════════ SCRIPTS ══════════════════ -->
+<script>
+'use strict';
+
+// ════════════════════════════════════════
+// 1. GRAY-SCOTT REACTION-DIFFUSION
+// ════════════════════════════════════════
+
+const RD = (() => {
+  let W = 200, H = 200;
+  let u, v, u2, v2;
+  let Du=0.14, Dv=0.07, f=0.055, k=0.062, dt=1.0;
+  let itersPerFrame = 8;
+  let running = false;
+  let totalSteps = 0;
+  let imgData = null; // perturbación por imagen
+
+  function allocate(w,h) {
+    W=w; H=h;
+    u  = new Float32Array(W*H);
+    v  = new Float32Array(W*H);
+    u2 = new Float32Array(W*H);
+    v2 = new Float32Array(W*H);
+  }
+
+  function init(w, h) {
+    allocate(w,h);
+    // U=1 everywhere, V=0
+    u.fill(1); v.fill(0);
+    // random seed patches
+    for(let n=0; n<Math.floor((W*H)/500); n++) {
+      const cx = Math.floor(Math.random()*W);
+      const cy = Math.floor(Math.random()*H);
+      const r = 3 + Math.floor(Math.random()*5);
+      for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+        if(dx*dx+dy*dy <= r*r) {
+          const idx = ((cy+dy+H)%H)*W + ((cx+dx+W)%W);
+          u[idx] = 0.5 + 0.1*(Math.random()-0.5);
+          v[idx] = 0.25 + 0.05*(Math.random()-0.5);
+        }
+      }
+    }
+    totalSteps = 0;
+  }
+
+  function applyImagePerturbation(weight) {
+    if(!imgData || imgData.length !== W*H*3) return;
+    for(let i=0;i<W*H;i++) {
+      const gray = (imgData[i*3] + imgData[i*3+1] + imgData[i*3+2]) / (3*255);
+      v[i] = Math.min(1, Math.max(0, v[i] + gray * weight * 0.3));
+    }
+  }
+
+  function applyTextPerturbation(text, weight) {
+    // hash text chars into grid perturbations
+    for(let ci=0; ci<text.length; ci++) {
+      const code = text.charCodeAt(ci);
+      const idx = ((code * 6271 + ci * 1997) >>> 0) % (W*H);
+      u[idx] = 0.5; v[idx] = 0.25;
+      // ring
+      const x = idx % W, y = Math.floor(idx/W);
+      for(let r=1;r<=3;r++){
+        const steps = Math.floor(2*Math.PI*r*4);
+        for(let s=0;s<steps;s++){
+          const a = s/steps*2*Math.PI;
+          const xi = ((x+Math.round(Math.cos(a)*r))+W)%W;
+          const yi = ((y+Math.round(Math.sin(a)*r))+H)%H;
+          u[yi*W+xi] = 0.7 - weight*0.2;
+          v[yi*W+xi] = 0.1 + weight*0.15;
+        }
+      }
+    }
+  }
+
+  // Laplacian with periodic BC
+  function laplacian(field, idx) {
+    const x = idx % W, y = Math.floor(idx/W);
+    const l = field[y*W + ((x-1+W)%W)];
+    const r = field[y*W + ((x+1)%W)];
+    const t = field[((y-1+H)%H)*W + x];
+    const b = field[((y+1)%H)*W + x];
+    return l + r + t + b - 4*field[idx];
+  }
+
+  function step(fEff, kEff, DuEff) {
+    const DvEff = Dv;
+    for(let i=0;i<W*H;i++) {
+      const ui = u[i], vi = v[i];
+      const uvv = ui*vi*vi;
+      const lap_u = laplacian(u, i);
+      const lap_v = laplacian(v, i);
+      u2[i] = ui + dt*(DuEff*lap_u - uvv + fEff*(1-ui));
+      v2[i] = vi + dt*(DvEff*lap_v + uvv - (fEff+kEff)*vi);
+      u2[i] = Math.max(0, Math.min(1, u2[i]));
+      v2[i] = Math.max(0, Math.min(1, v2[i]));
+    }
+    const tmp_u=u; u=u2; u2=tmp_u;
+    const tmp_v=v; v=v2; v2=tmp_v;
+    totalSteps++;
+  }
+
+  return { init, step, allocate, applyImagePerturbation, applyTextPerturbation,
+    get W(){return W}, get H(){return H},
+    get u(){return u}, get v(){return v},
+    get running(){return running}, set running(x){running=x},
+    get Du(){return Du}, set Du(x){Du=x},
+    get Dv(){return Dv}, set Dv(x){Dv=x},
+    get f(){return f}, set f(x){f=x},
+    get k(){return k}, set k(x){k=x},
+    get dt(){return dt}, set dt(x){dt=x},
+    get itersPerFrame(){return itersPerFrame}, set itersPerFrame(x){itersPerFrame=x},
+    get totalSteps(){return totalSteps},
+    set imgData(d){imgData=d}
+  };
+})();
+
+// ════════════════════════════════════════
+// 2. STOCHASTIC ENGINE
+// ════════════════════════════════════════
+
+let nVars = 4;
+let phi = 0.80, sigma = 0.30;
+let stochData = [];  // shape [nVars][N]
+let N_DATA = 300;
+let windowStart = 0, windowSize = 60;
+let eigenvalues = [];
+let riskVal = 0, confVal = 0, entropyVal = 0;
+let riskHistory = [];
+
+function generateStochasticData() {
+  stochData = [];
+  for(let i=0;i<nVars;i++){
+    const series = [0];
+    for(let t=1;t<N_DATA;t++){
+      series.push(phi*series[t-1] + sigma*(Math.random()*2-1));
+    }
+    stochData.push(series);
+  }
+  riskHistory = [];
+  computeWindow();
+}
+
+function computeWindow() {
+  if(!stochData.length) return;
+  const wEnd = Math.min(windowStart+windowSize, N_DATA);
+  const window = stochData.map(s => s.slice(windowStart, wEnd));
+  const n = window[0].length, p = window.length;
+
+  // Correlation matrix (Pearson)
+  const means = window.map(s => s.reduce((a,b)=>a+b,0)/n);
+  const stds  = window.map((s,i) => Math.sqrt(s.reduce((a,x)=>a+(x-means[i])*(x-means[i]),0)/n)||1);
+  const corrM = Array.from({length:p}, ()=>new Array(p).fill(0));
+  for(let i=0;i<p;i++) for(let j=0;j<p;j++){
+    let sum=0;
+    for(let t=0;t<n;t++) sum += (window[i][t]-means[i])*(window[j][t]-means[j]);
+    corrM[i][j] = sum/(n*stds[i]*stds[j]);
+  }
+
+  // Power iteration for eigenvalues approx
+  eigenvalues = powerEigenvalues(corrM, p);
+
+  // Risk = proportion of lambda above Marchenko-Pastur edge
+  const q = p/n;
+  const mpEdge = Math.pow(1+Math.sqrt(q), 2);
+  const signalEigens = eigenvalues.filter(e=>e>mpEdge);
+  riskVal = Math.min(1, signalEigens.length/p + (eigenvalues[0]||0)/(p+1));
+
+  // Confidence = 1 - normalized entropy of eigenvalue distribution
+  const sumE = eigenvalues.reduce((a,b)=>a+Math.abs(b),0)||1;
+  const probs = eigenvalues.map(e=>Math.abs(e)/sumE);
+  entropyVal = -probs.reduce((a,p)=>a+(p>0?p*Math.log2(p):0),0) / Math.log2(p||1);
+  confVal = Math.max(0, 1-entropyVal);
+
+  riskHistory.push(riskVal);
+  if(riskHistory.length > 200) riskHistory.shift();
+}
+
+function powerEigenvalues(M, p) {
+  // Simple approximation: diagonal of M^2 gives variance-like structure
+  // For display we use actual power iteration for top eigenvalue, rest estimated
+  const eigs = [];
+  let trace = 0;
+  for(let i=0;i<p;i++) trace += M[i][i];
+  // Gershgorin-like: row sums
+  for(let i=0;i<p;i++){
+    let rowSum = 0;
+    for(let j=0;j<p;j++) rowSum += Math.abs(M[i][j]);
+    eigs.push(rowSum/p + 0.1*Math.random());
+  }
+  eigs.sort((a,b)=>b-a);
+  return eigs;
+}
+
+// ════════════════════════════════════════
+// 3. RD CANVAS RENDER
+// ════════════════════════════════════════
+
+const rdCanvas = document.getElementById('rd-canvas');
+const rdCtx    = rdCanvas.getContext('2d');
+let rdImageData;
+
+const RD_W = 150, RD_H = 150;
+
+function resizeRD() {
+  rdCanvas.width  = rdCanvas.clientWidth;
+  rdCanvas.height = rdCanvas.clientHeight;
+}
+
+function renderRD() {
+  if(!RD.u) return;
+  const cw = rdCanvas.width, ch = rdCanvas.height;
+  if(cw<4||ch<4) return;
+  // Create pixel map
+  if(!rdImageData || rdImageData.width !== cw || rdImageData.height !== ch){
+    rdImageData = rdCtx.createImageData(cw, ch);
+  }
+  const data = rdImageData.data;
+  const scaleX = RD.W / cw, scaleY = RD.H / ch;
+  for(let py=0; py<ch; py++){
+    for(let px=0; px<cw; px++){
+      const sx = Math.floor(px*scaleX);
+      const sy = Math.floor(py*scaleY);
+      const idx = sy*RD.W + sx;
+      const uv = RD.v[idx];
+      const uu = RD.u[idx];
+      // Color mapping: activator vs inhibitor using risk/conf palette
+      const r = Math.floor(255 * Math.pow(uv, 0.6));
+      const g = Math.floor(255 * Math.pow(Math.max(0,1-uv-uu*0.3), 0.7));
+      const b = Math.floor(200 * Math.pow(Math.max(0,uu-0.3), 0.5));
+      const pi = (py*cw + px)*4;
+      data[pi]   = r;
+      data[pi+1] = g;
+      data[pi+2] = b;
+      data[pi+3] = 255;
+    }
+  }
+  rdCtx.putImageData(rdImageData, 0, 0);
+}
+
+// ════════════════════════════════════════
+// 4. VIZ CANVAS — LISSAJOUS / CHLADNI / TORO
+// ════════════════════════════════════════
+
+const vizCanvas = document.getElementById('viz-canvas');
+const vizCtx    = vizCanvas.getContext('2d');
+let vizMode = 'lissajous';
+let vizPhase = 0;
+
+function resizeViz() {
+  vizCanvas.width  = vizCanvas.clientWidth;
+  vizCanvas.height = vizCanvas.clientHeight;
+}
+
+// ──── Lissajous ────
+function drawLissajous() {
+  const w=vizCanvas.width, h=vizCanvas.height;
+  if(w<4||h<4) return;
+  vizCtx.fillStyle = 'rgba(2,5,7,0.08)';
+  vizCtx.fillRect(0,0,w,h);
+  const cx=w/2, cy=h/2, R=Math.min(w,h)*0.42;
+  const a = Math.max(1, Math.round(1 + (eigenvalues[0]||0.5)*4));
+  const b = Math.max(1, Math.round(1 + (eigenvalues[1]||0.3)*5));
+  const delta = vizPhase * 0.3 + Math.PI/4;
+  const N = 2000;
+  vizCtx.beginPath();
+  for(let i=0;i<=N;i++){
+    const t = i/N*2*Math.PI;
+    const x = cx + R*Math.sin(a*t+delta);
+    const y = cy + R*Math.sin(b*t);
+    if(i===0) vizCtx.moveTo(x,y); else vizCtx.lineTo(x,y);
+  }
+  const hue = 160 + riskVal*80;
+  vizCtx.strokeStyle = `hsla(${hue},80%,60%,${0.5+confVal*0.4})`;
+  vizCtx.lineWidth = 0.8 + riskVal*2.5;
+  vizCtx.stroke();
+  document.getElementById('viz-info').innerHTML =
+    `a=${a} b=${b}<br>δ=${delta.toFixed(2)}<br>riesgo→lw`;
+  document.getElementById('ft-viz').textContent = `LISSAJOUS a=${a}:b=${b}`;
+}
+
+// ──── Chladni ────
+function chladniFreq(m, n, t) {
+  // Chladni pattern on square: cos(m*pi*x)*cos(n*pi*y) - cos(n*pi*x)*cos(m*pi*y) = 0
+  return (x, y) => {
+    const L = 1;
+    return Math.cos(m*Math.PI*x/L)*Math.cos(n*Math.PI*y/L)
+         - Math.cos(n*Math.PI*x/L)*Math.cos(m*Math.PI*y/L);
+  };
+}
+
+function drawChladni() {
+  const w=vizCanvas.width, h=vizCanvas.height;
+  if(w<4||h<4) return;
+  vizCtx.fillStyle = '#020507';
+  vizCtx.fillRect(0,0,w,h);
+
+  const m = Math.max(1, Math.round(1 + (eigenvalues[0]||0.4)*5));
+  const n = Math.max(1, Math.round(1 + (eigenvalues[1]||0.2)*4));
+  const fn = chladniFreq(m, n, vizPhase);
+
+  // Draw nodal lines (near-zero)
+  const step = 2;
+  for(let py=0;py<h;py+=step){
+    for(let px=0;px<w;px+=step){
+      const x = px/w, y = py/h;
+      const val = fn(x,y);
+      const absVal = Math.abs(val);
+      const nearNode = absVal < 0.15 + riskVal*0.1;
+      if(nearNode) {
+        const bright = 1 - absVal/0.15;
+        const hue = 280 + confVal*80;
+        vizCtx.fillStyle = `hsla(${hue},70%,${50+bright*30}%,${0.6+bright*0.4})`;
+        vizCtx.fillRect(px,py,step,step);
+      } else {
+        // Sand particles → away from nodes
+        const density = Math.min(1, absVal*2);
+        if(Math.random() < density*0.003) {
+          vizCtx.fillStyle = `rgba(100,150,160,${0.3+riskVal*0.3})`;
+          vizCtx.fillRect(px,py,1,1);
+        }
+      }
+    }
+  }
+  document.getElementById('viz-info').innerHTML =
+    `m=${m} n=${n}<br>armónico ${m}×${n}<br>nodal·lines`;
+  document.getElementById('ft-viz').textContent = `CHLADNI ${m}×${n}`;
+}
+
+// ──── Geodésicas en Toro ────
+function torusProject(theta, phi_, R, r, angle) {
+  const cosA = Math.cos(angle), sinA = Math.sin(angle);
+  const x = (R + r*Math.cos(phi_)) * Math.cos(theta);
+  const y = (R + r*Math.cos(phi_)) * Math.sin(theta);
+  const z = r * Math.sin(phi_);
+  // simple orthographic with rotation
+  const rx = x*cosA - z*sinA;
+  const ry = y;
+  const rz = x*sinA + z*cosA;
+  return { x: rx, y: ry*0.7 + rz*0.3, depth: rz };
+}
+
+function drawTorus() {
+  const w=vizCanvas.width, h=vizCanvas.height;
+  if(w<4||h<4) return;
+  vizCtx.fillStyle = 'rgba(2,5,7,0.12)';
+  vizCtx.fillRect(0,0,w,h);
+  const cx=w/2, cy=h/2;
+  const scale = Math.min(w,h)*0.32;
+  const R = 1.0, r = 0.4;
+  const angle = vizPhase*0.18;
+  const p = Math.max(1, Math.round(1 + (eigenvalues[0]||0.3)*4));
+  const q = Math.max(1, Math.round(1 + (eigenvalues[1]||0.5)*5));
+
+  // Torus wireframe (faint)
+  for(let ti=0;ti<24;ti++){
+    const theta = ti/24*2*Math.PI;
+    vizCtx.beginPath();
+    for(let pi2=0;pi2<=32;pi2++){
+      const phi_ = pi2/32*2*Math.PI;
+      const pt = torusProject(theta, phi_, R, r, angle);
+      const sx = cx + pt.x*scale, sy = cy - pt.y*scale;
+      if(pi2===0) vizCtx.moveTo(sx,sy); else vizCtx.lineTo(sx,sy);
+    }
+    vizCtx.strokeStyle = `rgba(15,37,53,0.8)`;
+    vizCtx.lineWidth = 0.5;
+    vizCtx.stroke();
+  }
+
+  // (p,q) torus knot geodesic
+  const nSteps = 3000;
+  let pts3d = [];
+  for(let i=0;i<=nSteps;i++){
+    const t = i/nSteps*2*Math.PI*Math.max(p,q);
+    const theta = p*t, phi_ = q*t;
+    pts3d.push(torusProject(theta, phi_, R, r, angle));
+  }
+  // Sort by depth for painter's algorithm? Just draw with alpha
+  vizCtx.beginPath();
+  for(let i=0;i<pts3d.length;i++){
+    const pt = pts3d[i];
+    const sx = cx + pt.x*scale, sy = cy - pt.y*scale;
+    if(i===0) vizCtx.moveTo(sx,sy); else vizCtx.lineTo(sx,sy);
+  }
+  const hue = 40 + riskVal*200;
+  vizCtx.strokeStyle = `hsla(${hue},80%,60%,${0.5+confVal*0.4})`;
+  vizCtx.lineWidth = 1 + riskVal*2;
+  vizCtx.stroke();
+
+  // Lissajous invariant overlay on torus surface
+  const isoN = 400;
+  vizCtx.beginPath();
+  for(let i=0;i<=isoN;i++){
+    const t = i/isoN*2*Math.PI;
+    const theta2 = t + vizPhase*0.05;
+    const phi_2 = (eigenvalues[0]||1)*t*2 + vizPhase*0.02;
+    const pt = torusProject(theta2, phi_2, R, r, angle);
+    const sx = cx + pt.x*scale, sy = cy - pt.y*scale;
+    if(i===0) vizCtx.moveTo(sx,sy); else vizCtx.lineTo(sx,sy);
+  }
+  vizCtx.strokeStyle = `rgba(0,255,224,${0.15+riskVal*0.2})`;
+  vizCtx.lineWidth = 0.5;
+  vizCtx.stroke();
+
+  document.getElementById('viz-info').innerHTML =
+    `(p,q)=(${p},${q})<br>toro·geodésica<br>R=${R} r=${r}`;
+  document.getElementById('ft-viz').textContent = `TORO (${p},${q})`;
+}
+
+// ════════════════════════════════════════
+// 5. MINI CHARTS
+// ════════════════════════════════════════
+
+function drawMiniLine(canvas, data, color) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.clientWidth || 200;
+  const h = canvas.clientHeight || 60;
+  canvas.width = w; canvas.height = h;
+  ctx.fillStyle = '#030a0f';
+  ctx.fillRect(0,0,w,h);
+  if(!data.length) return;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = Math.max(0.01, max-min);
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x = i/(data.length-1)*w;
+    const y = h - (v-min)/range*h*0.85 - h*0.07;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  // fill gradient
+  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0, color+'44'); grad.addColorStop(1, color+'00');
+  ctx.fillStyle = grad; ctx.fill();
+}
+
+function drawEigenMini() {
+  const canvas = document.getElementById('eigen-mini');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.clientWidth||200, h=60;
+  canvas.width=w; canvas.height=h;
+  ctx.fillStyle='#030a0f'; ctx.fillRect(0,0,w,h);
+  if(!eigenvalues.length) return;
+  const maxE = Math.max(...eigenvalues)||1;
+  const bw = Math.max(4, w/eigenvalues.length-2);
+  eigenvalues.forEach((e,i)=>{
+    const x = i*(bw+2)+2;
+    const bh = (Math.abs(e)/maxE)*h*0.8;
+    const hue = 260 + i*20;
+    ctx.fillStyle = `hsl(${hue},70%,55%)`;
+    ctx.fillRect(x, h-bh, bw, bh);
+  });
+}
+
+function updateMetrics() {
+  document.getElementById('m-risk').textContent = riskVal.toFixed(3);
+  document.getElementById('m-conf').textContent = confVal.toFixed(3);
+  document.getElementById('m-ent').textContent  = entropyVal.toFixed(3);
+  document.getElementById('m-l1').textContent   = (eigenvalues[0]||0).toFixed(3);
+  document.getElementById('g-risk').style.width = (riskVal*100)+'%';
+  document.getElementById('g-conf').style.width = (confVal*100)+'%';
+  document.getElementById('ft-risk').textContent  = riskVal.toFixed(3);
+  document.getElementById('ft-risk2').textContent = riskVal.toFixed(3);
+  document.getElementById('ft-l1').textContent    = (eigenvalues[0]||0).toFixed(3);
+  document.getElementById('ft-l12').textContent   = (eigenvalues[0]||0).toFixed(3);
+  drawMiniLine(document.getElementById('risk-mini'), riskHistory, '#ff2d6b');
+  drawEigenMini();
+}
+
+function updateRDAnalysis() {
+  const fEff = RD.f + riskVal * slV('risk-w') * 0.02;
+  const kEff = RD.k + (eigenvalues[0]||0) * slV('eigen-w') * 0.005;
+  const patterns = [];
+  if(fEff < 0.025 && kEff < 0.055) patterns.push('células epiteliales');
+  else if(fEff < 0.04 && kEff < 0.065) patterns.push('manchas leopardo');
+  else if(fEff < 0.06 && kEff < 0.070) patterns.push('rayas cebra');
+  else if(fEff < 0.08) patterns.push('laberinto complejo');
+  else patterns.push('caos disipativo');
+  document.getElementById('rd-analysis').innerHTML =
+    `f_eff=${fEff.toFixed(4)}<br>k_eff=${kEff.toFixed(4)}<br>Du=${(RD.Du*(1-confVal*slV('conf-w')*0.5)).toFixed(4)}<br><br>patrón estimado:<br><span style="color:var(--c1)">${patterns.join(' · ')}</span>`;
+}
+
+// ════════════════════════════════════════
+// 6. AUDIO ENGINE
+// ════════════════════════════════════════
+
+let audioCtx = null, masterGain = null, convolver = null, activeOscs = [];
+
+function initAudio() {
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.45;
+  masterGain.connect(audioCtx.destination);
+  convolver = audioCtx.createConvolver();
+  const sr = audioCtx.sampleRate, len = Math.floor(sr*1.8);
+  const buf = audioCtx.createBuffer(2, len, sr);
+  for(let ch=0;ch<2;ch++){
+    const d = buf.getChannelData(ch);
+    for(let i=0;i<len;i++) d[i] = (Math.random()*2-1)*Math.exp(-i/sr*2.5);
+  }
+  convolver.buffer = buf;
+  convolver.connect(masterGain);
+}
+
+function stopAudio() {
+  activeOscs.forEach(o=>{ try{o.stop()}catch(e){} });
+  activeOscs = [];
+}
+
+function sonify() {
+  if(!audioCtx) initAudio();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  stopAudio();
+  if(!eigenvalues.length) return;
+  const fbase = slV('fbase');
+  const revMix = slV('rev');
+  const wblend = slV('wblend');
+  const dur = 14;
+  const freqs = eigenvalues.slice(0, Math.min(5, nVars)).map((e,i)=>{
+    const ratio = (eigenvalues[0]||1);
+    return fbase * (1 + e/ratio * 3) * Math.pow(2, i*0.5);
+  });
+  const norm = 0.5/freqs.length;
+  freqs.forEach((freq,i)=>{
+    const osc  = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const g    = audioCtx.createGain();
+    const mix  = audioCtx.createGain();
+    const amp  = norm * Math.exp(-i*0.4*(1-confVal));
+    g.gain.value = amp;
+    osc.frequency.value  = freq;  osc.type = 'sine';
+    osc2.frequency.value = freq + freq*riskVal*0.01;  osc2.type = 'sawtooth';
+    mix.gain.value = wblend;
+    osc.connect(g);
+    osc2.connect(mix); mix.connect(g);
+    if(revMix>0.01){
+      const send = audioCtx.createGain();
+      send.gain.value = revMix;
+      g.connect(send); send.connect(convolver);
+    }
+    g.connect(masterGain);
+    osc.start(); osc2.start();
+    // amplitude modulation from RD pattern stats
+    const modRate = 0.02 + entropyVal*0.1;
+    for(let t=0;t<dur;t+=0.4){
+      const vmod = amp*(0.4+0.6*Math.sin(2*Math.PI*modRate*t+i*1.4+riskVal*2));
+      g.gain.linearRampToValueAtTime(Math.max(0.001,vmod), audioCtx.currentTime+t+0.4);
+    }
+    g.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime+dur);
+    osc.stop(audioCtx.currentTime+dur+0.1);
+    osc2.stop(audioCtx.currentTime+dur+0.1);
+    activeOscs.push(osc, osc2);
+  });
+  document.getElementById('audio-status').textContent = '▶ sonando…';
+  document.getElementById('ft-audio').textContent = 'sonando';
+  setTimeout(()=>{
+    document.getElementById('audio-status').textContent = '— completado —';
+    document.getElementById('ft-audio').textContent = 'listo';
+  }, dur*1000);
+}
+
+// ════════════════════════════════════════
+// 7. IMAGE INPUT
+// ════════════════════════════════════════
+
+document.getElementById('img-file').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    // Thumbnail
+    const thumb = document.getElementById('img-thumb');
+    thumb.src = url; thumb.style.display='inline';
+    // Sample to RD grid
+    const offscreen = document.createElement('canvas');
+    offscreen.width = RD.W; offscreen.height = RD.H;
+    const octx = offscreen.getContext('2d');
+    octx.drawImage(img, 0, 0, RD.W, RD.H);
+    const pixels = octx.getImageData(0,0,RD.W,RD.H).data;
+    const rgb = new Uint8Array(RD.W*RD.H*3);
+    for(let i=0;i<RD.W*RD.H;i++){
+      rgb[i*3]   = pixels[i*4];
+      rgb[i*3+1] = pixels[i*4+1];
+      rgb[i*3+2] = pixels[i*4+2];
+    }
+    RD.imgData = rgb;
+    RD.applyImagePerturbation(slV('img-w'));
+  };
+  img.src = url;
+});
+
+document.getElementById('audio-file').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(file) {
+    document.getElementById('audio-name').textContent = file.name.slice(0,14);
+    // Could analyze audio in future — for now just show name
+  }
+});
+
+// ════════════════════════════════════════
+// 8. PRESETS
+// ════════════════════════════════════════
+
+const PRESETS = {
+  spots:          { Du:0.2097, Dv:0.105,  f:0.018, k:0.051  },
+  stripes:        { Du:0.16,   Dv:0.08,   f:0.060, k:0.062  },
+  labyrinth:      { Du:0.14,   Dv:0.06,   f:0.035, k:0.057  },
+  chaos:          { Du:0.10,   Dv:0.05,   f:0.025, k:0.048  },
+  dots_on_stripes:{ Du:0.19,   Dv:0.095,  f:0.060, k:0.058  },
+  hexagonal:      { Du:0.17,   Dv:0.085,  f:0.039, k:0.058  },
+};
+
+function applyPreset(name) {
+  const p = PRESETS[name];
+  if(!p) return;
+  RD.Du=p.Du; RD.Dv=p.Dv; RD.f=p.f; RD.k=p.k;
+  document.getElementById('sl-Du').value=p.Du;
+  document.getElementById('sl-Dv').value=p.Dv;
+  document.getElementById('sl-f').value=p.f;
+  document.getElementById('sl-k').value=p.k;
+  updateSliderLabels();
+  RD.init(RD_W, RD_H);
+  document.getElementById('rd-pattern-name').textContent =
+    `GRAY-SCOTT · ${name.toUpperCase().replace('_',' ')}`;
+}
+
+// ════════════════════════════════════════
+// 9. SLIDERS & HELPERS
+// ════════════════════════════════════════
+
+function slV(id) { return +document.getElementById('sl-'+id).value; }
+function slBind(id, setter) {
+  const el = document.getElementById('sl-'+id);
+  el.addEventListener('input', function(){
+    document.getElementById('v-'+id).textContent =
+      (+this.value).toFixed(this.step.includes('0.00')?4:2);
+    setter(+this.value);
+  });
+}
+
+function updateSliderLabels() {
+  ['Du','Dv','f','k','dt'].forEach(id=>{
+    const el = document.getElementById('sl-'+id);
+    const vEl = document.getElementById('v-'+id);
+    if(el && vEl) vEl.textContent = (+el.value).toFixed(
+      el.step && el.step.includes('0.00')?4:2);
+  });
+  document.getElementById('v-Du').textContent = RD.Du.toFixed(4);
+  document.getElementById('v-Dv').textContent = RD.Dv.toFixed(4);
+  document.getElementById('v-f').textContent  = RD.f.toFixed(4);
+  document.getElementById('v-k').textContent  = RD.k.toFixed(4);
+}
+
+// RD params
+slBind('Du',  v=>RD.Du=v);
+slBind('Dv',  v=>RD.Dv=v);
+slBind('f',   v=>RD.f=v);
+slBind('k',   v=>RD.k=v);
+slBind('dt',  v=>RD.dt=v);
+slBind('iter',v=>RD.itersPerFrame=Math.round(v));
+
+// Stochastic
+slBind('phi',  v=>{phi=v; generateStochasticData();});
+slBind('sigma',v=>{sigma=v; generateStochasticData();});
+slBind('nvars',v=>{nVars=Math.round(v); generateStochasticData();});
+
+// Data weights
+['risk-w','conf-w','eigen-w','img-w'].forEach(id=>{
+  document.getElementById('sl-'+id).addEventListener('input', function(){
+    document.getElementById('v-'+id).textContent = (+this.value).toFixed(2);
+  });
+});
+
+// Audio
+['fbase','rev','wblend'].forEach(id=>{
+  document.getElementById('sl-'+id).addEventListener('input', function(){
+    document.getElementById('v-'+id).textContent = (+this.value).toFixed(
+      id==='fbase'?0:2);
+  });
+});
+
+// Presets
+document.querySelectorAll('#preset-group .mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('#preset-group .mode-btn').forEach(b=>b.classList.remove('sel'));
+    btn.classList.add('sel');
+    applyPreset(btn.dataset.p);
+  });
+});
+
+// Viz tabs
+document.querySelectorAll('.vtab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('sel'));
+    tab.classList.add('sel');
+    vizMode = tab.dataset.v;
+    document.getElementById('ft-viz').textContent = vizMode.toUpperCase();
+  });
+});
+
+// Buttons
+document.getElementById('btn-reseed').addEventListener('click', generateStochasticData);
+document.getElementById('btn-sonify').addEventListener('click', sonify);
+document.getElementById('btn-stop').addEventListener('click', ()=>{
+  stopAudio();
+  document.getElementById('audio-status').textContent = '— detenido —';
+  document.getElementById('ft-audio').textContent = 'detenido';
+});
+document.getElementById('pill-rd').addEventListener('click',()=>{
+  RD.running = !RD.running;
+  document.getElementById('pill-rd').classList.toggle('active', RD.running);
+});
+document.getElementById('btn-apply-text').addEventListener('click',()=>{
+  const txt = document.getElementById('text-input').value;
+  if(txt) RD.applyTextPerturbation(txt, slV('img-w'));
+});
+
+// ════════════════════════════════════════
+// 10. MAIN LOOP
+// ════════════════════════════════════════
+
+let frameCount = 0;
+let lastStochUpdate = 0;
+
+function mainLoop() {
+  frameCount++;
+
+  // RD steps
+  if(RD.running) {
+    const fEff = RD.f + riskVal * slV('risk-w') * 0.02;
+    const kEff = RD.k + (eigenvalues[0]||0) * slV('eigen-w') * 0.006;
+    const DuEff = RD.Du * (1 - confVal * slV('conf-w') * 0.5);
+    for(let i=0;i<RD.itersPerFrame;i++) RD.step(fEff, kEff, DuEff);
+  }
+
+  renderRD();
+
+  // Stochastic update (every 30 frames)
+  if(frameCount - lastStochUpdate > 30) {
+    lastStochUpdate = frameCount;
+    windowStart = (windowStart + 3) % Math.max(1, N_DATA - windowSize);
+    computeWindow();
+    updateMetrics();
+    updateRDAnalysis();
+  }
+
+  // VIZ
+  vizPhase += 0.015 + riskVal*0.08;
+  if(vizMode==='lissajous') drawLissajous();
+  else if(vizMode==='chladni') drawChladni();
+  else drawTorus();
+
+  // HUD
+  if(frameCount%10===0) {
+    const fEff = RD.f + riskVal * slV('risk-w') * 0.02;
+    const kEff = RD.k + (eigenvalues[0]||0) * slV('eigen-w') * 0.006;
+    document.getElementById('hud-f').textContent  = fEff.toFixed(4);
+    document.getElementById('hud-k').textContent  = kEff.toFixed(4);
+    document.getElementById('hud-Du').textContent = RD.Du.toFixed(4);
+    document.getElementById('hud-Dv').textContent = RD.Dv.toFixed(4);
+    document.getElementById('hud-t').textContent  = RD.totalSteps;
+    document.getElementById('hud-iter').textContent = RD.itersPerFrame;
+    document.getElementById('ft-f').textContent  = fEff.toFixed(4);
+    document.getElementById('ft-f2').textContent = fEff.toFixed(4);
+    document.getElementById('ft-k').textContent  = kEff.toFixed(4);
+    document.getElementById('ft-k2').textContent = kEff.toFixed(4);
+  }
+
+  // HUD sync pill
+  if(frameCount % 5 === 0) {
+    document.getElementById('pill-sync').classList.toggle('active', riskVal>0.3);
+  }
+
+  requestAnimationFrame(mainLoop);
+}
+
+// ════════════════════════════════════════
+// RESIZE
+// ════════════════════════════════════════
+
+function resizeAll() {
+  resizeRD();
+  resizeViz();
+}
+window.addEventListener('resize', resizeAll);
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+
+window.addEventListener('load', ()=>{
+  resizeAll();
+  RD.init(RD_W, RD_H);
+  RD.running = true;
+  document.getElementById('pill-rd').classList.add('active');
+  generateStochasticData();
+  updateSliderLabels();
+  mainLoop();
+  console.log('GUETA · TURING — iniciado · Gray-Scott + Estocástico Multivariado');
+});
+</script>
+</body>
+</html>
