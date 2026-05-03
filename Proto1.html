@@ -1,0 +1,2284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>GUETA · RADIO · Coherencia en el Éter</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@300;400;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
+
+:root {
+  --bg:     #020507;
+  --bg2:    #030a0f;
+  --bg3:    #040d14;
+  --bord:   #091820;
+  --bord2:  #0f2535;
+  --c1:     #00ffe0;
+  --c2:     #ff2d6b;
+  --c3:     #ffe14d;
+  --c4:     #7b4fff;
+  --c5:     #00ff99;
+  --c6:     #ff8c00;
+  --dim:    #12303f;
+  --muted:  #2d5a6b;
+  --text:   #6fa8bd;
+  --bright: #c8e8f2;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; user-select:none; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inconsolata', monospace;
+  font-size: 11px;
+  overflow: hidden;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 44px 1fr 26px;
+  grid-template-columns: 230px 1fr 210px 210px;
+}
+
+/* ── HEADER ── */
+header {
+  grid-column: 1/-1;
+  display: flex; align-items: center;
+  padding: 0 10px; gap: 8px;
+  border-bottom: 1px solid var(--bord);
+  background: linear-gradient(90deg, #020507 0%, #04090e 100%);
+  position: relative; overflow: hidden;
+}
+header::before {
+  content:''; position:absolute; inset:0;
+  background: repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(0,255,224,0.012) 60px, rgba(0,255,224,0.012) 61px);
+  pointer-events:none;
+}
+.logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 17px; color: var(--c1);
+  text-shadow: 0 0 20px rgba(0,255,224,0.4);
+  letter-spacing: 2px; flex-shrink:0;
+}
+.logo em { color: var(--c2); font-style: italic; }
+.logo sub { font-size: 8px; letter-spacing: 3px; color: var(--muted); font-family:'Inconsolata',monospace; }
+.vsep { width:1px; height:22px; background:var(--bord2); flex-shrink:0; }
+.hsep { flex:1; }
+
+/* pills */
+.pill {
+  display:flex; align-items:center; gap:5px;
+  padding:3px 8px; border:1px solid var(--bord2);
+  background:var(--bg3); border-radius:2px;
+  font-size:8px; letter-spacing:1.5px; color:var(--muted);
+  cursor:pointer; transition:all 0.15s;
+}
+.pill:hover { border-color:var(--c1); color:var(--c1); }
+.pill.active { border-color:var(--c1); color:var(--c1); background:rgba(0,255,224,0.06); }
+.pill.danger { border-color:var(--c2); color:var(--c2); }
+.pill.live   { border-color:var(--c2); color:var(--c2); background:rgba(255,45,107,0.08); }
+.pill.live.active { background:rgba(255,45,107,0.15); }
+.pill .dot { width:5px; height:5px; border-radius:50%; background:var(--dim); flex-shrink:0; }
+.pill.active .dot { background:var(--c1); box-shadow:0 0 6px var(--c1); animation:pulse 2s infinite; }
+.pill.live.active .dot { background:var(--c2); box-shadow:0 0 6px var(--c2); animation:pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* header selects */
+.hsel {
+  background:var(--bg3); border:1px solid var(--bord2);
+  color:var(--c1); font-family:'Inconsolata',monospace;
+  font-size:8px; padding:3px 6px; border-radius:2px; cursor:pointer;
+}
+.hlabel { font-size:7.5px; color:var(--muted); letter-spacing:1.5px; }
+
+/* ── LEFT PANEL ── */
+.left {
+  grid-row:2; grid-column:1;
+  border-right:1px solid var(--bord);
+  background:var(--bg2);
+  overflow-y:auto; display:flex; flex-direction:column; gap:5px;
+  padding:7px;
+}
+.card {
+  background:rgba(2,8,12,0.7); border:1px solid var(--bord);
+  border-radius:3px; padding:7px;
+}
+.card-title {
+  font-size:7.5px; letter-spacing:2.5px; color:var(--c4);
+  margin-bottom:7px; display:flex; align-items:center; gap:5px;
+}
+.card-title::before { content:''; width:8px; height:1px; background:var(--c4); }
+.row { margin:4px 0; }
+.row label { font-size:7.5px; color:var(--muted); display:flex; justify-content:space-between; margin-bottom:2px; }
+.row label span { color:var(--bright); }
+input[type=range] { width:100%; accent-color:var(--c1); background:var(--bg); }
+.row-2col { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.mode-btn-group { display:flex; flex-wrap:wrap; gap:3px; }
+.mode-btn {
+  font-family:'Inconsolata',monospace;
+  font-size:7.5px; letter-spacing:1.5px; padding:2px 6px;
+  border:1px solid var(--dim); color:var(--dim);
+  background:none; cursor:pointer; border-radius:2px; transition:all 0.15s;
+}
+.mode-btn:hover { border-color:var(--c4); color:var(--c4); }
+.mode-btn.sel { border-color:var(--c4); color:var(--c4); background:rgba(123,79,255,0.1); }
+.badge { font-size:7px; padding:2px 4px; border:1px solid var(--dim); border-radius:10px; }
+.badge.act { border-color:var(--c5); color:var(--c5); }
+.badge.inh { border-color:var(--c2); color:var(--c2); }
+
+/* ── CENTER — geometry canvas ── */
+.center {
+  grid-row:2; grid-column:2;
+  position:relative; background:var(--bg); overflow:hidden;
+  border-left:1px solid var(--bord); border-right:1px solid var(--bord);
+}
+#main-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+.geo-hud {
+  position:absolute; top:8px; left:10px;
+  font-size:8px; background:rgba(2,5,7,0.75);
+  padding:5px 8px; border-radius:2px; pointer-events:none;
+  border:1px solid var(--bord2); backdrop-filter:blur(4px); z-index:10; line-height:1.8;
+}
+.geo-mode-bar {
+  position:absolute; bottom:10px; left:50%;
+  transform:translateX(-50%);
+  display:flex; gap:5px; background:rgba(2,5,7,0.8);
+  padding:4px 10px; border-radius:20px; backdrop-filter:blur(4px); z-index:20;
+}
+
+/* ── RD PANEL ── */
+.rd-panel {
+  grid-row:2; grid-column:3;
+  position:relative; background:var(--bg); overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.rd-label {
+  font-size:7px; letter-spacing:2px; color:var(--muted);
+  padding:4px 8px; background:var(--bg2); border-bottom:1px solid var(--bord);
+  flex-shrink:0;
+}
+#rd-canvas {
+  flex:1; width:100%; display:block;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+}
+.rd-hud {
+  position:absolute; bottom:8px; left:8px;
+  font-size:7.5px; background:rgba(2,5,7,0.8);
+  padding:4px 7px; border-radius:2px; pointer-events:none;
+  border:1px solid var(--bord2); line-height:1.8;
+}
+
+/* ── RIGHT PANEL ── */
+.right {
+  grid-row:2; grid-column:4;
+  border-left:1px solid var(--bord);
+  background:var(--bg2);
+  overflow-y:auto; display:flex; flex-direction:column; gap:5px;
+  padding:7px;
+}
+canvas.mini { width:100%; height:52px; background:var(--bg3); border:1px solid var(--bord); border-radius:2px; display:block; margin-top:3px; }
+.mval { background:var(--bg3); border:1px solid var(--bord); padding:4px; border-radius:2px; }
+.mval .lbl { font-size:7px; letter-spacing:1.5px; color:var(--muted); }
+.mval .val { font-size:12px; color:var(--bright); font-weight:700; margin-top:2px; }
+.gauge-track { height:3px; background:var(--bord); border-radius:2px; margin:4px 0; overflow:hidden; }
+.gauge-fill { height:100%; border-radius:2px; transition:width 0.3s; }
+
+/* audio controls */
+.transport { display:flex; gap:4px; margin-top:5px; }
+.tbtn {
+  flex:1; font-family:'Inconsolata',monospace;
+  font-size:8px; letter-spacing:1px; padding:3px 0;
+  border:1px solid var(--dim); color:var(--muted);
+  background:none; cursor:pointer; border-radius:2px; transition:all 0.15s;
+}
+.tbtn:hover { border-color:var(--c1); color:var(--c1); }
+.tbtn.on { border-color:var(--c5); color:var(--c5); background:rgba(0,255,153,0.07); }
+
+/* input zone */
+.input-zone {
+  display:flex; align-items:center; gap:6px;
+  background:var(--bg3); padding:3px 8px;
+  border:1px solid var(--bord2); border-radius:2px;
+}
+.input-zone span { font-size:8px; color:var(--muted); letter-spacing:1.5px; }
+.input-zone input[type=file] { display:none; }
+.input-zone label { cursor:pointer; color:var(--c3); font-size:8px; letter-spacing:1.5px; }
+.input-zone label:hover { color:var(--bright); }
+#img-thumb { width:20px; height:20px; border:1px solid var(--dim); object-fit:cover; display:none; }
+
+.text-input-area {
+  width:100%; background:var(--bg3); border:1px solid var(--bord2);
+  color:var(--bright); font-family:'Inconsolata',monospace; font-size:9px;
+  padding:4px; border-radius:2px; resize:vertical; min-height:28px;
+}
+.text-input-area::placeholder { color:var(--dim); }
+
+/* ── INGEST MODAL ── */
+#ingest-modal {
+  display:none; position:fixed; inset:0; z-index:1000;
+  background:rgba(2,5,7,0.92); backdrop-filter:blur(8px);
+  align-items:center; justify-content:center;
+}
+#ingest-modal.open { display:flex; }
+.modal-box {
+  background:var(--bg2); border:1px solid var(--bord2);
+  border-radius:4px; padding:20px; width:520px; max-width:96vw;
+  display:flex; flex-direction:column; gap:12px;
+  box-shadow:0 0 40px rgba(0,255,224,0.08);
+}
+.modal-title {
+  font-family:'DM Serif Display',serif; font-size:16px;
+  color:var(--c1); text-shadow:0 0 14px rgba(0,255,224,0.3);
+  letter-spacing:2px;
+}
+.modal-subtitle { font-size:8px; color:var(--muted); letter-spacing:2px; margin-top:-8px; }
+.ingest-tabs { display:flex; gap:4px; }
+.itab {
+  font-family:'Inconsolata',monospace; font-size:8px; letter-spacing:2px;
+  padding:4px 10px; border:1px solid var(--dim); color:var(--muted);
+  background:none; cursor:pointer; border-radius:2px; transition:all 0.12s;
+}
+.itab:hover { border-color:var(--c3); color:var(--c3); }
+.itab.sel { border-color:var(--c3); color:var(--c3); background:rgba(255,225,77,0.07); }
+.ingest-drop {
+  border:1px dashed var(--bord2); border-radius:3px;
+  min-height:100px; display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:8px; cursor:pointer; transition:all 0.15s;
+  padding:16px;
+}
+.ingest-drop:hover, .ingest-drop.drag { border-color:var(--c3); background:rgba(255,225,77,0.04); }
+.ingest-drop .drop-icon { font-size:28px; opacity:0.5; }
+.ingest-drop .drop-label { font-size:9px; color:var(--muted); letter-spacing:1.5px; text-align:center; }
+.ingest-drop input[type=file] { display:none; }
+.ingest-progress {
+  height:3px; background:var(--bord); border-radius:2px; overflow:hidden; display:none;
+}
+.ingest-progress-fill { height:100%; background:var(--c3); width:0%; transition:width 0.1s; }
+.ingest-status { font-size:8px; color:var(--muted); min-height:14px; }
+.ingest-preview {
+  background:var(--bg3); border:1px solid var(--bord); border-radius:2px;
+  padding:6px; font-size:8px; color:var(--text); max-height:80px; overflow-y:auto;
+  display:none; line-height:1.6;
+}
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:4px; }
+.mbtn {
+  font-family:'Inconsolata',monospace; font-size:8px; letter-spacing:2px;
+  padding:5px 14px; border:1px solid var(--dim); color:var(--muted);
+  background:none; cursor:pointer; border-radius:2px; transition:all 0.12s;
+}
+.mbtn:hover { border-color:var(--c1); color:var(--c1); }
+.mbtn.primary { border-color:var(--c3); color:var(--c3); }
+.mbtn.primary:hover { background:rgba(255,225,77,0.08); }
+
+/* ── RECORDER OVERLAY ── */
+#rec-overlay {
+  position:fixed; bottom:34px; right:0; z-index:500;
+  background:var(--bg2); border:1px solid var(--bord2);
+  border-radius:3px 0 0 0; padding:6px 10px;
+  display:none; flex-direction:column; gap:4px; min-width:180px;
+}
+#rec-overlay.visible { display:flex; }
+.rec-title { font-size:7px; letter-spacing:2px; color:var(--c2); }
+.rec-timer { font-size:14px; color:var(--bright); font-weight:700; font-family:'DM Serif Display',serif; }
+.rec-bar { height:2px; background:var(--bord); border-radius:1px; overflow:hidden; }
+.rec-bar-fill { height:100%; background:var(--c2); width:0%; animation:recpulse 1s ease-in-out infinite; }
+@keyframes recpulse { 0%,100%{opacity:1}50%{opacity:.4} }
+.rec-info { font-size:7.5px; color:var(--muted); line-height:1.6; }
+.rec-views { display:flex; gap:4px; margin-top:2px; }
+.rec-view-dot {
+  font-size:7px; padding:2px 5px; border:1px solid var(--dim); border-radius:2px;
+  color:var(--dim); letter-spacing:1px;
+}
+.rec-view-dot.on { border-color:var(--c5); color:var(--c5); }
+
+/* ── FOOTER ── */
+footer {
+  grid-column:1/-1;
+  display:flex; align-items:center;
+  padding:0 10px; border-top:1px solid var(--bord);
+  background:var(--bg2); overflow:hidden;
+  position:relative;
+}
+.ft-scroll {
+  display:flex; gap:18px; white-space:nowrap;
+  animation:ftScroll 30s linear infinite;
+}
+@keyframes ftScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.ft-item { font-size:7.5px; display:flex; gap:5px; }
+.ft-item .k { color:var(--dim); letter-spacing:1px; }
+.ft-item .v { color:var(--c1); }
+
+/* scrollbar */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--bg2); }
+::-webkit-scrollbar-thumb { background:var(--dim); border-radius:2px; }
+
+.metric-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<header>
+  <div class="logo">GUETA <em>·</em> RADIO<br><sub>COHERENCIA EN EL ÉTER</sub></div>
+  <div class="vsep"></div>
+
+  <!-- Fuente de datos -->
+  <span class="hlabel">FUENTE</span>
+  <select class="hsel" id="sel-source">
+    <option value="dataset">📊 DATASET</option>
+    <option value="ar">∿ AUTOREGRESIVO</option>
+    <option value="live">🎙️ MICRÓFONO</option>
+    <option value="sdr">📡 SDR SIM</option>
+  </select>
+
+  <select class="hsel" id="sel-dataset" style="display:block">
+    <option value="diversity">🌿 Diversidad biol.</option>
+    <option value="population">🐾 Poblaciones</option>
+    <option value="climate">🌡️ Proxies climát.</option>
+    <option value="synthetic">⚡ Caótico</option>
+  </select>
+
+  <div class="vsep"></div>
+
+  <!-- Modo de escucha -->
+  <span class="hlabel">ESCUCHA</span>
+  <div class="pill" id="pill-live"><div class="dot"></div>🔴 LIVE</div>
+  <div class="pill" id="pill-playback" style="border-color:var(--c4);color:var(--c4);background:rgba(123,79,255,0.08)"><div class="dot" style="background:var(--c4)"></div>▶ PLAYBACK</div>
+
+  <div class="vsep"></div>
+
+  <!-- Inputs -->
+  <div class="input-zone">
+    <span>IMG</span>
+    <label>+ <input type="file" id="img-file" accept="image/*"></label>
+    <img id="img-thumb">
+  </div>
+  <div class="input-zone">
+    <span>AUDIO</span>
+    <label>+ <input type="file" id="audio-file" accept="audio/*"></label>
+    <span id="audio-fname" style="color:var(--dim);font-size:8px">—</span>
+  </div>
+
+  <div class="hsep"></div>
+
+  <div class="pill" id="pill-rd"><div class="dot"></div>RD·LOOP</div>
+  <div class="pill" id="pill-sync">SYNC·λ</div>
+  <div class="pill danger" id="btn-sonify">▶ SONAR</div>
+  <div class="pill" id="btn-stop">■ STOP</div>
+  <div class="vsep"></div>
+  <div class="pill" id="btn-open-ingest" style="border-color:var(--c3);color:var(--c3);background:rgba(255,225,77,0.05)"><div class="dot" style="background:var(--c3)"></div>⬆ INGESTAR</div>
+  <div class="pill" id="btn-rec-start" style="border-color:var(--c2);color:var(--c2)"><div class="dot"></div>⏺ REC</div>
+</header>
+
+<!-- ══════════════════ LEFT PANEL ══════════════════ -->
+<div class="left">
+
+  <!-- Data source controls -->
+  <div class="card" id="card-dataset">
+    <div class="card-title">VENTANA TEMPORAL</div>
+    <div class="row">
+      <label>W (tamaño)<span id="v-ws">60</span></label>
+      <input type="range" id="sl-ws" min="10" max="200" value="60">
+    </div>
+    <div class="row">
+      <label>t₀ (offset)<span id="v-t0">0</span></label>
+      <input type="range" id="sl-t0" min="0" max="340" value="0">
+    </div>
+    <div style="font-size:7.5px;color:var(--dim);margin-top:3px" id="time-range">—</div>
+  </div>
+
+  <div class="card" id="card-ar" style="display:none">
+    <div class="card-title">AUTOREGRESIVO AR(1)</div>
+    <div class="row">
+      <label>φ (persistencia)<span id="v-phi">0.80</span></label>
+      <input type="range" id="sl-phi" min="0" max="0.99" step="0.01" value="0.80">
+    </div>
+    <div class="row">
+      <label>σ (ruido)<span id="v-sig">0.30</span></label>
+      <input type="range" id="sl-sig" min="0.01" max="1" step="0.01" value="0.30">
+    </div>
+    <div class="row">
+      <label>N vars<span id="v-nv">4</span></label>
+      <input type="range" id="sl-nv" min="2" max="8" step="1" value="4">
+    </div>
+    <div class="row">
+      <label>N puntos<span id="v-np">300</span></label>
+      <input type="range" id="sl-np" min="50" max="800" step="10" value="300">
+    </div>
+    <button class="mode-btn sel" id="btn-regen" style="width:100%;margin-top:5px">⟳ REGENERAR</button>
+  </div>
+
+  <div class="card" id="card-live" style="display:none">
+    <div class="card-title">AUDIO EN VIVO</div>
+    <div id="live-status" style="font-size:8px;color:var(--muted)">— inactivo —</div>
+    <div style="display:flex;gap:4px;margin-top:5px;font-size:8px;color:var(--dim)">
+      <span>Bandas:</span>
+      <span id="live-bands" style="color:var(--c1)">— — — —</span>
+    </div>
+    <canvas class="mini" id="live-canvas"></canvas>
+    <div class="row" style="margin-top:5px">
+      <label>N bandas (vars)<span id="v-nbands">4</span></label>
+      <input type="range" id="sl-nbands" min="2" max="8" step="1" value="4">
+    </div>
+    <div class="row">
+      <label>Ganancia<span id="v-gain">1.00</span></label>
+      <input type="range" id="sl-gain" min="0.1" max="5" step="0.1" value="1">
+    </div>
+  </div>
+
+  <!-- RD presets -->
+  <div class="card">
+    <div class="card-title">PRESETS TURING</div>
+    <div class="mode-btn-group" id="preset-group">
+      <button class="mode-btn sel" data-p="spots">MANCHAS</button>
+      <button class="mode-btn" data-p="stripes">RAYAS</button>
+      <button class="mode-btn" data-p="labyrinth">LABERINTO</button>
+      <button class="mode-btn" data-p="chaos">CAOS</button>
+      <button class="mode-btn" data-p="dots_on_stripes">PUNTOS·R</button>
+      <button class="mode-btn" data-p="hexagonal">HEXAGONAL</button>
+    </div>
+  </div>
+
+  <!-- RD parameters -->
+  <div class="card">
+    <div class="card-title">REACCIÓN-DIFUSIÓN <span class="badge act">A</span><span class="badge inh">I</span></div>
+    <div class="row">
+      <label>Du<span id="v-Du">0.14</span></label>
+      <input type="range" id="sl-Du" min="0.05" max="0.30" step="0.001" value="0.14">
+    </div>
+    <div class="row">
+      <label>Dv<span id="v-Dv">0.07</span></label>
+      <input type="range" id="sl-Dv" min="0.01" max="0.15" step="0.001" value="0.07">
+    </div>
+    <div class="row">
+      <label>f<span id="v-f">0.055</span></label>
+      <input type="range" id="sl-f" min="0.01" max="0.1" step="0.001" value="0.055">
+    </div>
+    <div class="row">
+      <label>k<span id="v-k">0.062</span></label>
+      <input type="range" id="sl-k" min="0.04" max="0.08" step="0.001" value="0.062">
+    </div>
+    <div class="row-2col">
+      <div class="row">
+        <label>dt<span id="v-dt">1.0</span></label>
+        <input type="range" id="sl-dt" min="0.1" max="2.0" step="0.1" value="1.0">
+      </div>
+      <div class="row">
+        <label>iter/f<span id="v-iter">8</span></label>
+        <input type="range" id="sl-iter" min="1" max="20" step="1" value="8">
+      </div>
+    </div>
+  </div>
+
+  <!-- RD coupling -->
+  <div class="card">
+    <div class="card-title">ACOPLAMIENTO DATOS → RD</div>
+    <div class="row">
+      <label>riesgo → f<span id="v-rw">0.5</span></label>
+      <input type="range" id="sl-rw" min="0" max="2" step="0.05" value="0.5">
+    </div>
+    <div class="row">
+      <label>λ₁ → k<span id="v-ew">0.3</span></label>
+      <input type="range" id="sl-ew" min="0" max="2" step="0.05" value="0.3">
+    </div>
+    <div class="row">
+      <label>conf → Du<span id="v-cw">0.4</span></label>
+      <input type="range" id="sl-cw" min="0" max="1" step="0.05" value="0.4">
+    </div>
+    <div class="row">
+      <label>img → perturb<span id="v-iw">0.5</span></label>
+      <input type="range" id="sl-iw" min="0" max="1" step="0.05" value="0.5">
+    </div>
+  </div>
+
+  <!-- Text perturbation -->
+  <div class="card">
+    <div class="card-title">PERTURBACIÓN TEXTUAL</div>
+    <textarea class="text-input-area" id="text-input" placeholder="texto → patrón RD…"></textarea>
+    <button class="mode-btn" id="btn-apply-text" style="width:100%;margin-top:4px">APLICAR →RD</button>
+  </div>
+
+</div>
+
+<!-- ══════════════════ CENTER — GEOMETRY ══════════════════ -->
+<div class="center">
+  <canvas id="main-canvas"></canvas>
+  <div class="geo-hud" id="geo-hud">
+    <div>MODO: <span id="hud-mode">CLIFFORD</span></div>
+    <div>λ₁=<span id="hud-l1">—</span> H=<span id="hud-ent">—</span> R=<span id="hud-risk">—</span></div>
+  </div>
+  <div class="geo-mode-bar">
+    <div class="pill active" data-geo="clifford">🌀 CLIFFORD</div>
+    <div class="pill" data-geo="lissajous">∞ LISSAJOUS</div>
+    <div class="pill" data-geo="torus">⨀ TORO</div>
+  </div>
+</div>
+
+<!-- ══════════════════ RD PANEL ══════════════════ -->
+<div class="rd-panel">
+  <div class="rd-label" id="rd-pattern-name">GRAY-SCOTT · SPOTS</div>
+  <canvas id="rd-canvas"></canvas>
+  <div class="rd-hud" id="rd-hud">
+    <div>f_eff=<span id="hud-f">—</span></div>
+    <div>k_eff=<span id="hud-k">—</span></div>
+    <div>Du=<span id="hud-Du">—</span></div>
+    <div>t=<span id="hud-t">0</span></div>
+    <div id="stress-label" style="color:var(--c2);display:none">⚠ ESTRÉS</div>
+  </div>
+</div>
+
+<!-- ══════════════════ RIGHT PANEL ══════════════════ -->
+<div class="right">
+
+  <!-- Metrics -->
+  <div class="card">
+    <div class="card-title">MÉTRICAS ESPECTRALES</div>
+    <div class="metric-grid">
+      <div class="mval"><div class="lbl">RIESGO</div><div class="val" id="m-risk">—</div></div>
+      <div class="mval"><div class="lbl">CONF.</div><div class="val" id="m-conf">—</div></div>
+      <div class="mval"><div class="lbl">ENTROPÍA</div><div class="val" id="m-ent">—</div></div>
+      <div class="mval"><div class="lbl">λ₁</div><div class="val" id="m-l1">—</div></div>
+    </div>
+    <div class="gauge-track"><div class="gauge-fill" id="g-risk" style="background:var(--c2);width:0%"></div></div>
+    <div class="gauge-track"><div class="gauge-fill" id="g-conf" style="background:var(--c5);width:0%"></div></div>
+    <div style="font-size:8px;color:var(--muted);margin-top:3px" id="rd-analysis">Esperando datos…</div>
+  </div>
+
+  <!-- Risk history -->
+  <div class="card">
+    <div class="card-title">SERIE RIESGO</div>
+    <canvas class="mini" id="risk-mini"></canvas>
+  </div>
+
+  <!-- Eigenvalues -->
+  <div class="card">
+    <div class="card-title">EIGENVALORES</div>
+    <canvas class="mini" id="eigen-mini"></canvas>
+    <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:8px">
+      <span style="color:var(--c4)">λ₁=<span id="e1">—</span></span>
+      <span style="color:#7bf">λ₂=<span id="e2">—</span></span>
+      <span style="color:#b7f">λ₃=<span id="e3">—</span></span>
+    </div>
+  </div>
+
+  <!-- Audio -->
+  <div class="card">
+    <div class="card-title">SÍNTESIS SONORA</div>
+    <div class="row">
+      <label>frec. base (Hz)<span id="v-fbase">80</span></label>
+      <input type="range" id="sl-fbase" min="40" max="400" step="5" value="80">
+    </div>
+    <div class="row">
+      <label>reverb<span id="v-rev">0.40</span></label>
+      <input type="range" id="sl-rev" min="0" max="1" step="0.05" value="0.4">
+    </div>
+    <div class="row">
+      <label>wave blend<span id="v-wb">0.30</span></label>
+      <input type="range" id="sl-wb" min="0" max="1" step="0.05" value="0.3">
+    </div>
+    <div class="row">
+      <label>LFO rate<span id="v-lfo">0.40</span></label>
+      <input type="range" id="sl-lfo" min="0.01" max="4" step="0.01" value="0.4">
+    </div>
+    <div class="transport">
+      <button class="tbtn" id="tbtn-play">▶</button>
+      <button class="tbtn" id="tbtn-pause">⏸</button>
+      <button class="tbtn" id="tbtn-stop">■</button>
+      <button class="tbtn" id="tbtn-loop">↺</button>
+    </div>
+    <div style="margin-top:5px;font-size:8px;color:var(--c4)" id="audio-status">— inactivo —</div>
+    <div style="margin-top:3px;font-size:7px;color:var(--muted)" id="audio-mode-label">MODO: PLAYBACK</div>
+  </div>
+
+  <!-- RD Analysis text -->
+  <div class="card">
+    <div class="card-title">MAPEO RD → PATRÓN</div>
+    <div style="font-size:8px;line-height:1.7;color:var(--muted)" id="rd-pattern-analysis">Esperando datos…</div>
+  </div>
+
+</div>
+
+<!-- ══════════════════ INGEST MODAL ══════════════════ -->
+<div id="ingest-modal">
+  <div class="modal-box">
+    <div class="modal-title">GUETA · INGESTAR ARCHIVO</div>
+    <div class="modal-subtitle">TEXTO · AUDIO · VIDEO · CSV — REACCIÓN EN TIEMPO REAL</div>
+    <div class="ingest-tabs">
+      <button class="itab sel" data-itype="text">TXT</button>
+      <button class="itab" data-itype="audio">AUDIO</button>
+      <button class="itab" data-itype="video">VIDEO</button>
+      <button class="itab" data-itype="csv">CSV</button>
+    </div>
+    <label class="ingest-drop" id="ingest-drop">
+      <input type="file" id="ingest-file-input" accept="*">
+      <div class="drop-icon" id="ingest-icon">📄</div>
+      <div class="drop-label" id="ingest-hint">Arrastra aquí o haz clic<br><span style="color:var(--dim)">.txt .md (texto plano)</span></div>
+    </label>
+    <div class="ingest-progress" id="ingest-progress"><div class="ingest-progress-fill" id="ingest-progress-fill"></div></div>
+    <div class="ingest-status" id="ingest-status">— listo para ingestar —</div>
+    <div class="ingest-preview" id="ingest-preview"></div>
+    <div id="ingest-speed-row" style="display:none">
+      <div class="row"><label>Velocidad de lectura<span id="v-ingspd">1.0×</span></label><input type="range" id="sl-ingspd" min="0.25" max="4" step="0.25" value="1"></div>
+      <div class="row"><label>Ventana de análisis (ms)<span id="v-ingwin">100</span></label><input type="range" id="sl-ingwin" min="20" max="500" step="10" value="100"></div>
+    </div>
+    <div id="ingest-csv-opts" style="display:none">
+      <div class="row"><label>Columnas a usar<span id="v-csvcols">5</span></label><input type="range" id="sl-csvcols" min="1" max="8" step="1" value="5"></div>
+      <div style="font-size:7.5px;color:var(--muted);margin-top:3px" id="csv-header-preview">—</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:8px;color:var(--muted)"><input type="checkbox" id="ingest-autorec" style="accent-color:var(--c2)"> Grabar animación auto</label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:8px;color:var(--muted)"><input type="checkbox" id="ingest-autosound" style="accent-color:var(--c4)" checked> Sonificar al avanzar</label>
+    </div>
+    <div class="modal-actions">
+      <button class="mbtn" id="ingest-cancel">CANCELAR</button>
+      <button class="mbtn primary" id="ingest-start">⬆ INICIAR INGESTA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ RECORDER OVERLAY ══════════════════ -->
+<div id="rec-overlay">
+  <div class="rec-title">● GRABANDO ANIMACIÓN</div>
+  <div class="rec-timer" id="rec-timer">00:00</div>
+  <div class="rec-bar"><div class="rec-bar-fill"></div></div>
+  <div class="rec-info">Frames: <span id="rec-frames">0</span> · <span id="rec-mb">0.0</span> MB</div>
+  <div class="rec-views">
+    <div class="rec-view-dot on">CLIFF</div>
+    <div class="rec-view-dot on">LISS</div>
+    <div class="rec-view-dot on">TORO</div>
+    <div class="rec-view-dot on">RD</div>
+  </div>
+  <button class="mbtn" id="btn-rec-stop" style="margin-top:4px;font-size:7px">■ DETENER Y GUARDAR</button>
+</div>
+
+<!-- ══════════════════ FOOTER ══════════════════ -->
+<footer>
+  <div class="ft-scroll" id="ft-scroll">
+    <div class="ft-item"><span class="k">GUETA</span><span class="v">RADIO·v3</span></div>
+    <div class="ft-item"><span class="k">FUENTE</span><span class="v" id="ft-src">DATASET</span></div>
+    <div class="ft-item"><span class="k">RD·f</span><span class="v" id="ft-f">—</span></div>
+    <div class="ft-item"><span class="k">RD·k</span><span class="v" id="ft-k">—</span></div>
+    <div class="ft-item"><span class="k">RIESGO</span><span class="v" id="ft-risk">—</span></div>
+    <div class="ft-item"><span class="k">λ₁</span><span class="v" id="ft-l1">—</span></div>
+    <div class="ft-item"><span class="k">GEO</span><span class="v" id="ft-geo">CLIFFORD</span></div>
+    <div class="ft-item"><span class="k">AUDIO</span><span class="v" id="ft-audio">listo</span></div>
+    <div class="ft-item"><span class="k">MODE</span><span class="v" id="ft-listen">PLAYBACK</span></div>
+    <!-- duplicate for loop -->
+    <div class="ft-item"><span class="k">GUETA</span><span class="v">RADIO·v3</span></div>
+    <div class="ft-item"><span class="k">FUENTE</span><span class="v">DATASET</span></div>
+    <div class="ft-item"><span class="k">RD·f</span><span class="v" id="ft-f2">—</span></div>
+    <div class="ft-item"><span class="k">RD·k</span><span class="v" id="ft-k2">—</span></div>
+    <div class="ft-item"><span class="k">RIESGO</span><span class="v" id="ft-risk2">—</span></div>
+    <div class="ft-item"><span class="k">λ₁</span><span class="v" id="ft-l12">—</span></div>
+    <div class="ft-item"><span class="k">GEO</span><span class="v">COHERENCIA</span></div>
+    <div class="ft-item"><span class="k">AUDIO</span><span class="v">SÍNTESIS</span></div>
+  </div>
+</footer>
+
+<!-- ══════════════════ SCRIPTS ══════════════════ -->
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════════
+// MODULE: DataProvider
+// Fuentes: dataset, AR, live (mic), SDR simulado
+// Interface: DataProvider.getCurrentWindow() → Float32Array[][]
+// ════════════════════════════════════════════════════════════
+const DataProvider = (() => {
+  let mode = 'dataset';       // 'dataset' | 'ar' | 'live' | 'sdr'
+  let nVars = 5;
+  let windowSize = 60;
+  let windowStart = 0;
+
+  // Dataset mode
+  let datasetMatrix = [];     // [nVars][N]
+  let datasetTimes  = [];
+  let N_DATA = 400;
+
+  // AR mode
+  let arPhi = 0.80, arSigma = 0.30;
+  let arData = [];
+
+  // Live mode
+  let liveBuffer = [];        // [nVars][LIVE_BUF] circular
+  const LIVE_BUF = 200;
+  let liveAnalyser = null;
+  let liveInterval = null;
+  let liveGain = 1.0;
+  let liveBands = 4;
+
+  // SDR sim
+  let sdrPhase = 0;
+
+  // ── dataset generation (from GuetaRythm) ──
+  function generateDataset(type, nPts, nV) {
+    nVars = nV; N_DATA = nPts;
+    const times = Array.from({length:nPts}, (_,i) => new Date(2024,0,1+i).toISOString().slice(0,10));
+    const varNames = type==='diversity' ? ['Riqueza','Abund.','Equidad','Recambio','Dispers.'] :
+                     type==='population'? ['Liebres','Linces','Vegetac.','Clima','Depredad.'] :
+                     type==='climate'   ? ['Temp.','Precip.','Hum.','Viento','Presión'] :
+                                          ['Caos1','Caos2','Caos3','Caos4','Caos5'];
+    let data = [];
+    for (let v=0;v<nV;v++) {
+      let vals=[], trend=(v%2===0)?0.001:-0.0005, sa=0.2+v*0.1;
+      for (let t=0;t<nPts;t++) {
+        let val=Math.sin(2*Math.PI*t/50+v)*sa + trend*t;
+        if(type==='climate'){
+          if(Math.random()<0.02) val+=(Math.random()-0.5)*1.5;
+          val+=Math.sin(2*Math.PI*t/365)*0.3;
+        } else if(type==='synthetic'){
+          val=0.6*Math.sin(0.01*t*v)+0.4*Math.cos(0.007*t*(v+2))+(Math.random()-0.5)*0.2;
+        } else { val+=(Math.random()-0.5)*0.05; }
+        vals.push(val+v*0.5);
+      }
+      const mean=vals.reduce((a,b)=>a+b)/nPts;
+      const std=Math.sqrt(vals.reduce((s,x)=>s+(x-mean)**2,0)/nPts)||1;
+      data.push(vals.map(x=>(x-mean)/std));
+    }
+    datasetMatrix=data; datasetTimes=times;
+    document.getElementById('sl-t0').max = Math.max(0, nPts-windowSize);
+    windowStart=0;
+    document.getElementById('sl-t0').value=0;
+    document.getElementById('v-t0').textContent=0;
+    return {varNames};
+  }
+
+  // ── AR generation ──
+  function generateAR(phi, sigma, nV, nPts) {
+    arPhi=phi; arSigma=sigma; nVars=nV; N_DATA=nPts;
+    arData=[];
+    for (let i=0;i<nV;i++) {
+      const s=[0];
+      for (let t=1;t<nPts;t++) s.push(phi*s[t-1]+sigma*(Math.random()*2-1));
+      arData.push(s);
+    }
+    windowStart=0;
+  }
+
+  // ── Live audio init ──
+  async function startLive(nBands, gain) {
+    if (liveInterval) clearInterval(liveInterval);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true, video:false});
+      const audioCtxLive = new (window.AudioContext||window.webkitAudioContext)();
+      const src = audioCtxLive.createMediaStreamSource(stream);
+      liveAnalyser = audioCtxLive.createAnalyser();
+      liveAnalyser.fftSize = 256;
+      src.connect(liveAnalyser);
+      liveBands = nBands; liveGain = gain;
+      nVars = nBands;
+      // init circular buffer
+      liveBuffer = Array.from({length:nBands}, ()=> new Float32Array(LIVE_BUF).fill(0));
+      document.getElementById('live-status').textContent = '● captando…';
+      document.getElementById('live-status').style.color = 'var(--c2)';
+      liveInterval = setInterval(()=>updateLive(gain), 50);
+      return true;
+    } catch(e) {
+      document.getElementById('live-status').textContent = '✕ sin acceso';
+      return false;
+    }
+  }
+
+  function updateLive(gain) {
+    if (!liveAnalyser) return;
+    const freqData = new Uint8Array(liveAnalyser.frequencyBinCount);
+    liveAnalyser.getByteFrequencyData(freqData);
+    const step = Math.floor(freqData.length / liveBands);
+    const vals = [];
+    for (let b=0;b<liveBands;b++) {
+      let sum=0;
+      for (let i=0;i<step;i++) sum+=freqData[b*step+i];
+      vals.push((sum/step/128)*gain);
+    }
+    document.getElementById('live-bands').textContent = vals.map(v=>v.toFixed(2)).join(' ');
+    for (let b=0;b<liveBands;b++) {
+      const buf = liveBuffer[b];
+      // shift + push
+      buf.copyWithin(0,1);
+      buf[LIVE_BUF-1] = vals[b];
+    }
+    drawLivePreview(vals);
+  }
+
+  function drawLivePreview(vals) {
+    const cv = document.getElementById('live-canvas');
+    if (!cv.width) { cv.width=cv.clientWidth||200; cv.height=cv.clientHeight||52; }
+    const ctx=cv.getContext('2d'), w=cv.width, h=cv.height;
+    ctx.fillStyle='rgba(3,10,15,0.3)'; ctx.fillRect(0,0,w,h);
+    vals.forEach((v,i)=>{
+      const hue=170+i*40;
+      ctx.fillStyle=`hsla(${hue},80%,55%,0.8)`;
+      ctx.fillRect(i*(w/vals.length)+1, h*(1-Math.min(1,v)), w/vals.length-2, h*Math.min(1,v));
+    });
+  }
+
+  // ── SDR sim ──
+  function updateSDR() {
+    sdrPhase += 0.03;
+    nVars = 4;
+    if (!arData.length) generateAR(0.6, 0.2, 4, 300);
+    // inject synthetic radio-like components into arData
+    for (let b=0;b<4;b++) {
+      const idx = (windowStart + windowSize - 1) % N_DATA;
+      if (arData[b] && idx < arData[b].length) {
+        arData[b][idx] += 0.4*Math.sin(sdrPhase*(b+1)*1.3) + 0.1*(Math.random()-0.5);
+      }
+    }
+  }
+
+  // ── public API ──
+  function getCurrentWindow() {
+    if (mode==='live') {
+      // return last windowSize samples from liveBuffer
+      const ws = Math.min(windowSize, LIVE_BUF);
+      return liveBuffer.map(buf => Array.from(buf.slice(LIVE_BUF-ws)));
+    }
+    const src = (mode==='ar'||mode==='sdr') ? arData : datasetMatrix;
+    if (!src.length) return [];
+    const N = src[0].length;
+    const end = Math.min(windowStart+windowSize, N);
+    const start = Math.max(0, end-windowSize);
+    return src.map(s=>s.slice(start,end));
+  }
+
+  return {
+    setMode(m) { mode=m; },
+    setWindowSize(ws){ windowSize=ws; },
+    setWindowStart(t){ windowStart=t; },
+    setARParams(phi,sig,nV,nPts){ generateAR(phi,sig,nV,nPts); },
+    loadDataset(type,nV){ return generateDataset(type,400,nV); },
+    startLive, updateSDR,
+    get mode(){ return mode; },
+    get nVars(){ return nVars; },
+    get windowStart(){ return windowStart; },
+    get N_DATA(){ return (mode==='ar'||mode==='sdr') ? (arData[0]?.length||300) : N_DATA; },
+    get datasetTimes(){ return datasetTimes; },
+    get windowSize(){ return windowSize; },
+    getCurrentWindow,
+    advanceWindow() {
+      if(mode==='dataset'||mode==='ar') {
+        const maxStart = Math.max(0, DataProvider.N_DATA - windowSize);
+        windowStart = Math.min(windowStart+2, maxStart);
+      }
+    }
+  };
+})();
+
+// ════════════════════════════════════════════════════════════
+// MODULE: StatsEngine
+// Power iteration + deflation (proper eigenvalues)
+// ════════════════════════════════════════════════════════════
+const StatsEngine = (() => {
+  let eigenvalues=[], riskVal=0, confVal=0, entropyVal=0;
+  let riskHistory=[];
+  let corrMatrix=[];
+
+  function pearson(a,b) {
+    const n=a.length; if(n<2) return 0;
+    const ma=a.reduce((s,x)=>s+x)/n, mb=b.reduce((s,x)=>s+x)/n;
+    let num=0, da=0, db=0;
+    for(let i=0;i<n;i++){num+=(a[i]-ma)*(b[i]-mb);da+=(a[i]-ma)**2;db+=(b[i]-mb)**2;}
+    return (da===0||db===0)?0:num/Math.sqrt(da*db);
+  }
+
+  function computeEigenvalues(M) {
+    let mat = M.map(r=>[...r]);
+    const n=mat.length; const eigs=[];
+    for (let iter=0;iter<Math.min(n,6);iter++) {
+      let v=Array.from({length:n},()=>Math.random()-0.5);
+      let norm=Math.hypot(...v)||1; v=v.map(x=>x/norm);
+      for (let pw=0;pw<60;pw++) {
+        let Mv=mat.map(row=>row.reduce((s,val,j)=>s+val*v[j],0));
+        norm=Math.hypot(...Mv)||1; v=Mv.map(x=>x/norm);
+      }
+      let lam=v.reduce((s,vi,i)=>s+vi*mat[i].reduce((a,b,j)=>a+b*v[j],0),0);
+      eigs.push(Math.abs(lam));
+      for(let i=0;i<n;i++) for(let j=0;j<n;j++) mat[i][j]-=lam*v[i]*v[j];
+    }
+    return eigs.sort((a,b)=>b-a);
+  }
+
+  function compute(windowData) {
+    if(!windowData.length || !windowData[0].length) return;
+    const p=windowData.length, n=windowData[0].length;
+    // correlation matrix
+    const C=Array.from({length:p},(_,i)=>Array.from({length:p},(_,j)=>pearson(windowData[i],windowData[j])));
+    corrMatrix=C;
+    eigenvalues=computeEigenvalues(C);
+
+    // Marchenko-Pastur risk
+    const q=p/Math.max(n,1);
+    const mpEdge=Math.pow(1+Math.sqrt(q),2);
+    const signalE=eigenvalues.filter(e=>e>mpEdge);
+    riskVal=Math.min(1, signalE.length/Math.max(p,1) + (eigenvalues[0]||0)/(p+1));
+
+    // Entropy + confidence
+    const sumE=eigenvalues.reduce((a,b)=>a+Math.abs(b),0)||1;
+    const probs=eigenvalues.map(e=>Math.abs(e)/sumE);
+    entropyVal=-probs.reduce((a,pr)=>a+(pr>0?pr*Math.log2(pr):0),0)/Math.log2(Math.max(p,2));
+    confVal=Math.max(0,1-entropyVal);
+
+    riskHistory.push(riskVal);
+    if(riskHistory.length>200) riskHistory.shift();
+  }
+
+  return {
+    compute,
+    get eigenvalues(){ return eigenvalues; },
+    get risk(){ return riskVal; },
+    get confidence(){ return confVal; },
+    get entropy(){ return entropyVal; },
+    get riskHistory(){ return riskHistory; },
+    get corrMatrix(){ return corrMatrix; },
+  };
+})();
+
+// ════════════════════════════════════════════════════════════
+// MODULE: GrayScott Reaction-Diffusion
+// ════════════════════════════════════════════════════════════
+const RD = (() => {
+  const W=180, H=180;
+  let u=new Float32Array(W*H), v=new Float32Array(W*H);
+  let u2=new Float32Array(W*H), v2=new Float32Array(W*H);
+  let Du=0.14, Dv=0.07, f=0.055, k=0.062, dt=1.0;
+  let itersPerFrame=8, running=false, totalSteps=0;
+  let imgData=null;
+
+  function init() {
+    u.fill(1); v.fill(0);
+    for (let n=0;n<Math.floor(W*H/500);n++) {
+      const cx=Math.floor(Math.random()*W), cy=Math.floor(Math.random()*H);
+      const r=3+Math.floor(Math.random()*5);
+      for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++) {
+        if(dx*dx+dy*dy<=r*r){
+          const idx=((cy+dy+H)%H)*W+((cx+dx+W)%W);
+          u[idx]=0.5+0.1*(Math.random()-0.5); v[idx]=0.25+0.05*(Math.random()-0.5);
+        }
+      }
+    }
+    totalSteps=0;
+  }
+
+  function applyImagePerturbation(weight, rgb) {
+    if(!rgb||rgb.length!==W*H*3) return;
+    for(let i=0;i<W*H;i++){
+      const gray=(rgb[i*3]+rgb[i*3+1]+rgb[i*3+2])/(3*255);
+      v[i]=Math.min(1,Math.max(0,v[i]+gray*weight*0.3));
+    }
+  }
+
+  function applyTextPerturbation(text, weight) {
+    for(let ci=0;ci<text.length;ci++){
+      const code=text.charCodeAt(ci);
+      const idx=((code*6271+ci*1997)>>>0)%(W*H);
+      u[idx]=0.5; v[idx]=0.25;
+      const x=idx%W, y=Math.floor(idx/W);
+      for(let r=1;r<=3;r++){
+        const steps=Math.floor(2*Math.PI*r*4);
+        for(let s=0;s<steps;s++){
+          const a=s/steps*2*Math.PI;
+          const xi=((x+Math.round(Math.cos(a)*r))+W)%W;
+          const yi=((y+Math.round(Math.sin(a)*r))+H)%H;
+          u[yi*W+xi]=0.7-weight*0.2; v[yi*W+xi]=0.1+weight*0.15;
+        }
+      }
+    }
+  }
+
+  function lap(field, idx) {
+    const x=idx%W, y=Math.floor(idx/W);
+    return field[y*W+((x-1+W)%W)]+field[y*W+((x+1)%W)]+
+           field[((y-1+H)%H)*W+x]+field[((y+1)%H)*W+x]-4*field[idx];
+  }
+
+  function step(fEff, kEff, DuEff) {
+    for(let i=0;i<W*H;i++){
+      const ui=u[i], vi=v[i], uvv=ui*vi*vi;
+      u2[i]=Math.max(0,Math.min(1,ui+dt*(DuEff*lap(u,i)-uvv+fEff*(1-ui))));
+      v2[i]=Math.max(0,Math.min(1,vi+dt*(Dv*lap(v,i)+uvv-(fEff+kEff)*vi)));
+    }
+    const tu=u; u=u2; u2=tu; const tv=v; v=v2; v2=tv;
+    totalSteps++;
+  }
+
+  return { init, step, applyImagePerturbation, applyTextPerturbation,
+    W, H, get u(){return u;}, get v(){return v;},
+    get running(){return running;}, set running(x){running=x;},
+    get Du(){return Du;}, set Du(x){Du=x;},
+    get Dv(){return Dv;}, set Dv(x){Dv=x;},
+    get f(){return f;}, set f(x){f=x;},
+    get k(){return k;}, set k(x){k=x;},
+    get dt(){return dt;}, set dt(x){dt=x;},
+    get itersPerFrame(){return itersPerFrame;}, set itersPerFrame(x){itersPerFrame=x;},
+    get totalSteps(){return totalSteps;},
+    set imgData(d){imgData=d;}, get imgData(){return imgData;},
+  };
+})();
+
+// ════════════════════════════════════════════════════════════
+// MODULE: GeometryRenderer
+// Clifford attractor, Lissajous, Torus geodesic
+// ════════════════════════════════════════════════════════════
+const GeometryRenderer = (() => {
+  let canvas, ctx;
+  let mode='clifford';
+  let phase=0, lissPhase=0;
+  let cliffordX=0.1, cliffordY=0.1;
+  let cParams={a:-1.6,b:1.7,c:0.9,d:-0.5};
+
+  function init(cv) { canvas=cv; ctx=cv.getContext('2d'); }
+
+  function updateCliffordFromMetrics(e1,e2,e3,entropy,risk) {
+    cParams.a=Math.min(-1.2,Math.max(-2.2,-1.5-e1*0.6-entropy*0.1));
+    cParams.b=Math.min(2.2,Math.max(1.2,1.5+e2*0.8));
+    cParams.c=Math.min(1.6,Math.max(0.5,0.7+e3*0.9));
+    cParams.d=Math.min(0.2,Math.max(-1.2,-0.6+risk*0.8));
+  }
+
+  function cliffordPoints(n=5000,skip=200) {
+    const {a,b,c,d}=cParams;
+    let pts=[],x=cliffordX,y=cliffordY;
+    for(let i=0;i<n+skip;i++){
+      let nx=Math.sin(a*y)+c*Math.cos(a*x);
+      let ny=Math.sin(b*x)+d*Math.cos(b*y);
+      x=nx; y=ny;
+      if(i>=skip) pts.push([x,y]);
+    }
+    cliffordX=x; cliffordY=y;
+    // collapse detection + reinit
+    if(pts.length>100){
+      let cx=0,cy=0; for(let p of pts){cx+=p[0];cy+=p[1];}
+      cx/=pts.length;cy/=pts.length;
+      let sp=0; for(let p of pts) sp+=(p[0]-cx)**2+(p[1]-cy)**2;
+      if(Math.sqrt(sp/pts.length)<0.05){ cliffordX=(Math.random()-0.5)*1.5;cliffordY=(Math.random()-0.5)*1.5; return cliffordPoints(n,skip); }
+    }
+    return pts;
+  }
+
+  function drawClifford(eigs, entropy, risk) {
+    const w=canvas.width,h=canvas.height;
+    ctx.fillStyle='rgba(2,5,7,0.12)'; ctx.fillRect(0,0,w,h);
+    updateCliffordFromMetrics(eigs[0]||0.5,eigs[1]||0.3,eigs[2]||0.2,entropy,risk);
+    const pts=cliffordPoints(5000);
+    if(!pts.length) return;
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    for(const p of pts){minX=Math.min(minX,p[0]);maxX=Math.max(maxX,p[0]);minY=Math.min(minY,p[1]);maxY=Math.max(maxY,p[1]);}
+    const rx=Math.max(0.01,maxX-minX),ry=Math.max(0.01,maxY-minY);
+    const sx=w/(rx+0.2),sy=h/(ry+0.2);
+    const ox=w/2-(minX+maxX)/2*sx, oy=h/2-(minY+maxY)/2*sy;
+    const sz=Math.max(1,Math.min(3,1.3+risk*3.5));
+    const hue=160+risk*100;
+    for(const p of pts){
+      const x=p[0]*sx+ox, y=p[1]*sy+oy;
+      if(x>=0&&x<w&&y>=0&&y<h){
+        ctx.fillStyle=`rgba(${Math.round(50+risk*200)},${Math.round(200-risk*100)},${Math.round(200+eigs[0]*55)},${0.3+(eigs[0]||0)*0.5})`;
+        ctx.fillRect(x,y,sz,sz);
+      }
+    }
+    // invariant mean circle
+    ctx.beginPath();
+    ctx.arc(w/2,h/2,Math.min(w,h)*0.05*(0.5+(eigs[0]||0)),0,Math.PI*2);
+    ctx.strokeStyle=`rgba(0,255,224,0.2)`;
+    ctx.lineWidth=0.5;
+    ctx.stroke();
+    document.getElementById('ft-geo').textContent=`CLIFFORD a=${cParams.a.toFixed(2)}`;
+  }
+
+  function drawLissajous(eigs, entropy, risk) {
+    const w=canvas.width,h=canvas.height;
+    ctx.fillStyle='rgba(2,5,7,0.08)'; ctx.fillRect(0,0,w,h);
+    const cx=w/2,cy=h/2,R=Math.min(w,h)*0.42;
+    const a=Math.max(1,Math.round(1+(eigs[0]||0.5)*4));
+    const b=Math.max(1,Math.round(1+(eigs[1]||0.3)*5));
+    const delta=lissPhase*0.3+Math.PI/4+entropy*0.5;
+    const N=2000;
+    ctx.beginPath();
+    for(let i=0;i<=N;i++){
+      const t=i/N*2*Math.PI;
+      const x=cx+R*Math.sin(a*t+delta);
+      const y=cy+R*Math.sin(b*t);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    const hue=160+risk*80;
+    ctx.strokeStyle=`hsla(${hue},80%,60%,${0.5+confVal()*0.4})`;
+    ctx.lineWidth=0.8+risk*2.5;
+    ctx.stroke();
+    document.getElementById('ft-geo').textContent=`LISSAJOUS ${a}:${b}`;
+  }
+
+  function torusProject(theta,phi_,R,r,angle){
+    const cosA=Math.cos(angle),sinA=Math.sin(angle);
+    const x=(R+r*Math.cos(phi_))*Math.cos(theta);
+    const y=(R+r*Math.cos(phi_))*Math.sin(theta);
+    const z=r*Math.sin(phi_);
+    const rx=x*cosA-z*sinA, rz=x*sinA+z*cosA;
+    return {x:rx, y:y, ry:y*0.7+rz*0.3, depth:rz};
+  }
+
+  function drawTorus(eigs, entropy, risk) {
+    const w=canvas.width,h=canvas.height;
+    ctx.fillStyle='rgba(2,5,7,0.12)'; ctx.fillRect(0,0,w,h);
+    const cx=w/2,cy=h/2,scale=Math.min(w,h)*0.32;
+    const R=1.0,r=0.4;
+    const angle=phase*0.18;
+    const p=Math.max(1,Math.round(1+(eigs[0]||0.3)*4));
+    const q=Math.max(1,Math.round(1+(eigs[1]||0.5)*5));
+
+    // wireframe
+    for(let ti=0;ti<20;ti++){
+      const theta=ti/20*2*Math.PI;
+      ctx.beginPath();
+      for(let pi2=0;pi2<=28;pi2++){
+        const phi_=pi2/28*2*Math.PI;
+        const pt=torusProject(theta,phi_,R,r,angle);
+        const sx=cx+pt.x*scale,sy=cy-pt.ry*scale;
+        if(pi2===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+      }
+      ctx.strokeStyle='rgba(15,37,53,0.7)'; ctx.lineWidth=0.4; ctx.stroke();
+    }
+
+    // (p,q) knot geodesic
+    const nSteps=3000;
+    ctx.beginPath();
+    for(let i=0;i<=nSteps;i++){
+      const t=i/nSteps*2*Math.PI*Math.max(p,q);
+      const pt=torusProject(p*t,q*t,R,r,angle);
+      const sx=cx+pt.x*scale,sy=cy-pt.ry*scale;
+      if(i===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+    }
+    const hue=40+risk*200;
+    ctx.strokeStyle=`hsla(${hue},80%,60%,${0.5+confVal()*0.4})`;
+    ctx.lineWidth=1+risk*2;
+    ctx.stroke();
+
+    // invariant family (varying δ by risk)
+    for(let fam=0;fam<3;fam++){
+      const delta=fam*Math.PI*2/3*risk;
+      ctx.beginPath();
+      const ns=400;
+      for(let i=0;i<=ns;i++){
+        const t=i/ns*2*Math.PI;
+        const theta2=t+phase*0.04;
+        const phi_2=(eigs[0]||1)*t*2+phase*0.02+delta;
+        const pt=torusProject(theta2,phi_2,R,r,angle);
+        const sx=cx+pt.x*scale,sy=cy-pt.ry*scale;
+        if(i===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+      }
+      ctx.strokeStyle=`rgba(0,255,224,${0.08+risk*0.1})`;
+      ctx.lineWidth=0.5; ctx.stroke();
+    }
+    document.getElementById('ft-geo').textContent=`TORO (${p},${q})`;
+  }
+
+  // helper: access global state
+  function confVal() { return StatsEngine.confidence; }
+
+  return {
+    init,
+    setMode(m){ mode=m; },
+    get mode(){ return mode; },
+    draw(eigs,entropy,risk){
+      if(!canvas||!canvas.width) return;
+      phase+=0.015+risk*0.08;
+      lissPhase+=0.01;
+      if(mode==='clifford')  drawClifford(eigs,entropy,risk);
+      else if(mode==='lissajous') drawLissajous(eigs,entropy,risk);
+      else drawTorus(eigs,entropy,risk);
+    }
+  };
+})();
+
+// ════════════════════════════════════════════════════════════
+// MODULE: AudioEngine
+// Dual mode: Live (continuous sonification) | Playback (transport)
+// ════════════════════════════════════════════════════════════
+const AudioEngine = (() => {
+  let audioCtx=null, masterGain=null, convolver=null;
+  let activeOscs=[];
+  let listenMode='playback'; // 'live' | 'playback'
+  let liveOscInterval=null;
+  let looping=false;
+  let lfoRate=0.4;
+
+  function buildCtx() {
+    if(audioCtx) return;
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    masterGain=audioCtx.createGain(); masterGain.gain.value=0.4; masterGain.connect(audioCtx.destination);
+    convolver=audioCtx.createConvolver();
+    const sr=audioCtx.sampleRate, len=Math.floor(sr*1.8);
+    const buf=audioCtx.createBuffer(2,len,sr);
+    for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/sr*2.5);}
+    convolver.buffer=buf; convolver.connect(masterGain);
+  }
+
+  function stopAll() {
+    activeOscs.forEach(o=>{try{o.stop()}catch(e){}});
+    activeOscs=[];
+    if(liveOscInterval){clearInterval(liveOscInterval);liveOscInterval=null;}
+  }
+
+  function makeVoice(freq, amp, revMix, wblend) {
+    const osc=audioCtx.createOscillator();
+    const osc2=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    const mix=audioCtx.createGain();
+    g.gain.value=amp;
+    osc.frequency.value=freq; osc.type='sine';
+    osc2.frequency.value=freq; osc2.type='sawtooth';
+    mix.gain.value=wblend;
+    osc.connect(g); osc2.connect(mix); mix.connect(g);
+    if(revMix>0.01){const send=audioCtx.createGain();send.gain.value=revMix;g.connect(send);send.connect(convolver);}
+    g.connect(masterGain);
+    return {osc,osc2,g};
+  }
+
+  function sonifyPlayback(eigs,entropy,risk,conf) {
+    buildCtx(); if(audioCtx.state==='suspended') audioCtx.resume();
+    stopAll();
+    if(!eigs.length) return;
+    const fbase=+document.getElementById('sl-fbase').value;
+    const revMix=+document.getElementById('sl-rev').value;
+    const wblend=+document.getElementById('sl-wb').value;
+    lfoRate=+document.getElementById('sl-lfo').value;
+    const dur=14;
+    const norm=0.5/Math.min(eigs.length,5);
+    eigs.slice(0,5).forEach((e,i)=>{
+      const freq=fbase*(1+e/(eigs[0]||1)*3)*Math.pow(2,i*0.5);
+      const amp=norm*Math.exp(-i*0.4*(1-conf));
+      const {osc,osc2,g}=makeVoice(freq,amp,revMix,wblend);
+      osc.start(); osc2.start();
+      const modRate=0.02+entropy*0.1+lfoRate*0.05;
+      for(let t=0;t<dur;t+=0.4){
+        const vm=amp*(0.4+0.6*Math.sin(2*Math.PI*modRate*t+i*1.4+risk*2));
+        g.gain.linearRampToValueAtTime(Math.max(0.001,vm),audioCtx.currentTime+t+0.4);
+      }
+      g.gain.linearRampToValueAtTime(0.0001,audioCtx.currentTime+dur);
+      osc.stop(audioCtx.currentTime+dur+0.1); osc2.stop(audioCtx.currentTime+dur+0.1);
+      activeOscs.push(osc,osc2);
+    });
+    document.getElementById('audio-status').textContent='▶ sonando…';
+    document.getElementById('ft-audio').textContent='sonando';
+    setTimeout(()=>{
+      document.getElementById('audio-status').textContent='— completado —';
+      document.getElementById('ft-audio').textContent='listo';
+      if(looping) sonifyPlayback(StatsEngine.eigenvalues,StatsEngine.entropy,StatsEngine.risk,StatsEngine.confidence);
+    }, dur*1000);
+  }
+
+  function startLiveSonification() {
+    buildCtx(); if(audioCtx.state==='suspended') audioCtx.resume();
+    stopAll();
+    const fbase=+document.getElementById('sl-fbase').value;
+    const revMix=+document.getElementById('sl-rev').value;
+    const wblend=+document.getElementById('sl-wb').value;
+    lfoRate=+document.getElementById('sl-lfo').value;
+
+    // Create persistent oscillators, update with setTargetAtTime
+    const voices=[];
+    const N=Math.min(StatsEngine.eigenvalues.length||4,5);
+    for(let i=0;i<N;i++){
+      buildCtx();
+      const osc=audioCtx.createOscillator();
+      const g=audioCtx.createGain();
+      const lfo=audioCtx.createOscillator();
+      const lfoGain=audioCtx.createGain();
+      osc.type='sine'; osc.frequency.value=fbase*(i+1);
+      osc.connect(g); g.connect(masterGain);
+      if(revMix>0.01){const s=audioCtx.createGain();s.gain.value=revMix;g.connect(s);s.connect(convolver);}
+      lfo.type='sine'; lfo.frequency.value=lfoRate+i*0.1;
+      lfoGain.gain.value=0.3*fbase;
+      lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+      lfo.start(); osc.start(); g.gain.value=0.05;
+      voices.push({osc,g});
+      activeOscs.push(osc,lfo);
+    }
+
+    // Update every 200ms
+    liveOscInterval=setInterval(()=>{
+      const eigs=StatsEngine.eigenvalues;
+      const risk=StatsEngine.risk;
+      const conf=StatsEngine.confidence;
+      voices.forEach((v,i)=>{
+        if(!eigs[i]) return;
+        const targetFreq=fbase*(1+eigs[i]/(eigs[0]||1)*3)*Math.pow(2,i*0.5);
+        const targetAmp=0.06*Math.exp(-i*0.5)*conf;
+        v.osc.frequency.setTargetAtTime(targetFreq+risk*10*i,audioCtx.currentTime,0.2);
+        v.g.gain.setTargetAtTime(Math.max(0.001,targetAmp),audioCtx.currentTime,0.15);
+      });
+    },200);
+  }
+
+  return {
+    setMode(m){
+      listenMode=m;
+      document.getElementById('audio-mode-label').textContent='MODO: '+m.toUpperCase();
+      document.getElementById('ft-listen').textContent=m.toUpperCase();
+    },
+    play(){
+      if(listenMode==='live') startLiveSonification();
+      else sonifyPlayback(StatsEngine.eigenvalues,StatsEngine.entropy,StatsEngine.risk,StatsEngine.confidence);
+    },
+    pause(){
+      if(audioCtx&&audioCtx.state==='running') audioCtx.suspend();
+      document.getElementById('audio-status').textContent='⏸ pausado';
+    },
+    resume(){
+      if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
+      document.getElementById('audio-status').textContent='▶ sonando…';
+    },
+    stop(){ stopAll(); document.getElementById('audio-status').textContent='■ detenido'; document.getElementById('ft-audio').textContent='detenido'; },
+    setLoop(v){ looping=v; },
+    get looping(){ return looping; },
+  };
+})();
+
+// ════════════════════════════════════════════════════════════
+// MODULE: UIManager — renders mini charts, metrics, RD
+// ════════════════════════════════════════════════════════════
+const UIManager = (() => {
+  let rdImageData=null;
+  const rdCanvas=document.getElementById('rd-canvas');
+  const rdCtx=rdCanvas.getContext('2d');
+
+  function renderRD() {
+    const cw=rdCanvas.clientWidth, ch=rdCanvas.clientHeight;
+    if(cw<4||ch<4) return;
+    if(rdCanvas.width!==cw||rdCanvas.height!==ch){rdCanvas.width=cw;rdCanvas.height=ch;}
+    if(!rdImageData||rdImageData.width!==cw||rdImageData.height!==ch)
+      rdImageData=rdCtx.createImageData(cw,ch);
+    const data=rdImageData.data;
+    const scX=RD.W/cw, scY=RD.H/ch;
+    const risk=StatsEngine.risk, conf=StatsEngine.confidence;
+    for(let py=0;py<ch;py++) for(let px=0;px<cw;px++){
+      const sx=Math.floor(px*scX), sy=Math.floor(py*scY);
+      const idx=sy*RD.W+sx;
+      const uv=RD.v[idx], uu=RD.u[idx];
+      const r=Math.floor(255*Math.pow(uv,0.6));
+      const g=Math.floor(200*Math.pow(Math.max(0,1-uv-uu*0.3),0.7));
+      const b=Math.floor(220*Math.pow(Math.max(0,uu-0.3),0.5));
+      const pi=(py*cw+px)*4;
+      data[pi]=r; data[pi+1]=g; data[pi+2]=b; data[pi+3]=255;
+    }
+    rdCtx.putImageData(rdImageData,0,0);
+  }
+
+  function drawMiniLine(cv, dataArr, color) {
+    const w=cv.clientWidth||200, h=cv.clientHeight||52;
+    cv.width=w; cv.height=h;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#030a0f'; ctx.fillRect(0,0,w,h);
+    if(!dataArr.length) return;
+    const min=Math.min(...dataArr), max=Math.max(...dataArr);
+    const range=Math.max(0.01,max-min);
+    ctx.beginPath();
+    dataArr.forEach((v,i)=>{
+      const x=i/(dataArr.length-1)*(w-2)+1;
+      const y=h-(v-min)/range*h*0.85-h*0.07;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle=color; ctx.lineWidth=1.2; ctx.stroke();
+    ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+    const grad=ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,color+'44'); grad.addColorStop(1,color+'00');
+    ctx.fillStyle=grad; ctx.fill();
+  }
+
+  function drawEigenMini() {
+    const cv=document.getElementById('eigen-mini');
+    const w=cv.clientWidth||200, h=52;
+    cv.width=w; cv.height=h;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#030a0f'; ctx.fillRect(0,0,w,h);
+    const eigs=StatsEngine.eigenvalues;
+    if(!eigs.length) return;
+    const maxE=Math.max(...eigs)||1;
+    const bw=Math.max(4,w/eigs.length-2);
+    eigs.forEach((e,i)=>{
+      const x=i*(bw+2)+2;
+      const bh=(Math.abs(e)/maxE)*h*0.8;
+      ctx.fillStyle=`hsl(${260+i*25},70%,55%)`;
+      ctx.fillRect(x,h-bh,bw,bh);
+    });
+  }
+
+  function updateMetrics() {
+    const risk=StatsEngine.risk, conf=StatsEngine.confidence;
+    const ent=StatsEngine.entropy, eigs=StatsEngine.eigenvalues;
+    document.getElementById('m-risk').textContent=risk.toFixed(3);
+    document.getElementById('m-conf').textContent=conf.toFixed(3);
+    document.getElementById('m-ent').textContent=ent.toFixed(3);
+    document.getElementById('m-l1').textContent=(eigs[0]||0).toFixed(3);
+    document.getElementById('g-risk').style.width=(risk*100)+'%';
+    document.getElementById('g-conf').style.width=(conf*100)+'%';
+    document.getElementById('e1').textContent=(eigs[0]||0).toFixed(3);
+    document.getElementById('e2').textContent=(eigs[1]||0).toFixed(3);
+    document.getElementById('e3').textContent=(eigs[2]||0).toFixed(3);
+    document.getElementById('hud-l1').textContent=(eigs[0]||0).toFixed(2);
+    document.getElementById('hud-ent').textContent=ent.toFixed(2);
+    document.getElementById('hud-risk').textContent=risk.toFixed(2);
+    document.getElementById('ft-risk').textContent=risk.toFixed(3);
+    document.getElementById('ft-risk2').textContent=risk.toFixed(3);
+    document.getElementById('ft-l1').textContent=(eigs[0]||0).toFixed(3);
+    document.getElementById('ft-l12').textContent=(eigs[0]||0).toFixed(3);
+    drawMiniLine(document.getElementById('risk-mini'),StatsEngine.riskHistory,'#ff2d6b');
+    drawEigenMini();
+  }
+
+  function updateRDAnalysis() {
+    const risk=StatsEngine.risk, conf=StatsEngine.confidence;
+    const eigs=StatsEngine.eigenvalues;
+    const fEff=RD.f+risk*slV('rw')*0.02;
+    const kEff=RD.k+(eigs[0]||0)*slV('ew')*0.005;
+    const patterns=[];
+    if(fEff<0.025&&kEff<0.055) patterns.push('células epiteliales');
+    else if(fEff<0.04&&kEff<0.065) patterns.push('manchas leopardo');
+    else if(fEff<0.06&&kEff<0.070) patterns.push('rayas cebra');
+    else if(fEff<0.08) patterns.push('laberinto complejo');
+    else patterns.push('caos disipativo');
+    const stressMode=risk>0.7;
+    document.getElementById('stress-label').style.display=stressMode?'block':'none';
+    document.getElementById('rd-pattern-analysis').innerHTML=
+      `f_eff=${fEff.toFixed(4)}<br>k_eff=${kEff.toFixed(4)}<br>Du=${(RD.Du*(1-conf*slV('cw')*0.5)).toFixed(4)}<br>`+
+      `<br>patrón:<br><span style="color:var(--c1)">${patterns.join(' · ')}</span>`+
+      (stressMode?'<br><span style="color:var(--c2)">⚠ ESTRÉS ACTIVO</span>':'');
+    document.getElementById('ft-f').textContent=fEff.toFixed(4);
+    document.getElementById('ft-f2').textContent=fEff.toFixed(4);
+    document.getElementById('ft-k').textContent=kEff.toFixed(4);
+    document.getElementById('ft-k2').textContent=kEff.toFixed(4);
+    document.getElementById('hud-f').textContent=fEff.toFixed(4);
+    document.getElementById('hud-k').textContent=kEff.toFixed(4);
+    document.getElementById('hud-Du').textContent=(RD.Du*(1-conf*slV('cw')*0.5)).toFixed(4);
+    document.getElementById('hud-t').textContent=RD.totalSteps;
+  }
+
+  return { renderRD, updateMetrics, updateRDAnalysis };
+})();
+
+// ════════════════════════════════════════════════════════════
+// PRESETS
+// ════════════════════════════════════════════════════════════
+const PRESETS = {
+  spots:          {Du:0.2097,Dv:0.105, f:0.018,k:0.051},
+  stripes:        {Du:0.16,  Dv:0.08,  f:0.060,k:0.062},
+  labyrinth:      {Du:0.14,  Dv:0.06,  f:0.035,k:0.057},
+  chaos:          {Du:0.10,  Dv:0.05,  f:0.025,k:0.048},
+  dots_on_stripes:{Du:0.19,  Dv:0.095, f:0.060,k:0.058},
+  hexagonal:      {Du:0.17,  Dv:0.085, f:0.039,k:0.058},
+};
+
+function applyPreset(name) {
+  const p=PRESETS[name]; if(!p) return;
+  RD.Du=p.Du; RD.Dv=p.Dv; RD.f=p.f; RD.k=p.k;
+  ['Du','Dv','f','k'].forEach(id=>{
+    document.getElementById('sl-'+id).value=p[id];
+    document.getElementById('v-'+id).textContent=p[id].toFixed(4);
+  });
+  RD.init();
+  document.getElementById('rd-pattern-name').textContent='GRAY-SCOTT · '+name.toUpperCase().replace('_',' ');
+}
+
+// ════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════
+function slV(id){ return +(document.getElementById('sl-'+id)?.value||0); }
+function slBind(id,setter){
+  const el=document.getElementById('sl-'+id);
+  if(!el) return;
+  el.addEventListener('input',function(){
+    const v=+this.value;
+    const disp=document.getElementById('v-'+id);
+    if(disp) disp.textContent=v.toFixed(this.step&&this.step.includes('0.00')?4:2);
+    setter(v);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// MAIN LOOP
+// ════════════════════════════════════════════════════════════
+let frameCount=0, lastStatsUpdate=0;
+let currentSource='dataset';
+
+function mainLoop() {
+  frameCount++;
+
+  // SDR continuous update
+  if(currentSource==='sdr' && frameCount%20===0) DataProvider.updateSDR();
+
+  // RD simulation steps
+  if(RD.running) {
+    const eigs=StatsEngine.eigenvalues;
+    const risk=StatsEngine.risk, conf=StatsEngine.confidence;
+    const fEff=RD.f+risk*slV('rw')*0.02;
+    const kEff=RD.k+(eigs[0]||0)*slV('ew')*0.006;
+    const DuEff=RD.Du*(1-conf*slV('cw')*0.5);
+    // stress mode: faster dt when risk > 0.7
+    const stressDt=risk>0.7?RD.dt*1.5:RD.dt;
+    const origDt=RD.dt;
+    if(risk>0.7) RD.dt=Math.min(2.0,stressDt);
+    for(let i=0;i<RD.itersPerFrame;i++) RD.step(fEff,kEff,DuEff);
+    RD.dt=origDt;
+  }
+  UIManager.renderRD();
+
+  // Stats update every ~30 frames (decoupled from render)
+  if(frameCount-lastStatsUpdate>30) {
+    lastStatsUpdate=frameCount;
+    const win=DataProvider.getCurrentWindow();
+    if(win.length && win[0].length>4) {
+      StatsEngine.compute(win);
+      UIManager.updateMetrics();
+      UIManager.updateRDAnalysis();
+    }
+    // Auto-advance window for dataset/AR/SDR
+    if(currentSource!=='live') DataProvider.advanceWindow();
+    // Update time range display
+    if(currentSource==='dataset' && DataProvider.datasetTimes.length) {
+      const ws=DataProvider.windowStart, wsz=DataProvider.windowSize;
+      const times=DataProvider.datasetTimes;
+      document.getElementById('time-range').textContent=
+        `${times[ws]||'—'} → ${times[Math.min(ws+wsz-1,times.length-1)]||'—'}`;
+    }
+  }
+
+  // Geometry render
+  GeometryRenderer.draw(StatsEngine.eigenvalues, StatsEngine.entropy, StatsEngine.risk);
+  document.getElementById('hud-mode').textContent=GeometryRenderer.mode.toUpperCase();
+
+  // Footer sync pill
+  if(frameCount%5===0){
+    document.getElementById('pill-sync').classList.toggle('active',StatsEngine.risk>0.3);
+  }
+
+  requestAnimationFrame(mainLoop);
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT & EVENTS
+// ════════════════════════════════════════════════════════════
+
+// Source selector
+document.getElementById('sel-source').addEventListener('change', function() {
+  currentSource=this.value;
+  DataProvider.setMode(this.value);
+  document.getElementById('ft-src').textContent=this.value.toUpperCase();
+  document.getElementById('sel-dataset').style.display=this.value==='dataset'?'block':'none';
+  document.getElementById('card-dataset').style.display=(this.value==='dataset'||this.value==='ar')?'block':'none';
+  document.getElementById('card-ar').style.display=this.value==='ar'?'block':'none';
+  document.getElementById('card-live').style.display=this.value==='live'?'block':'none';
+  if(this.value==='ar') DataProvider.setARParams(slV('phi'),slV('sig'),Math.round(slV('nv')),Math.round(slV('np')));
+  if(this.value==='sdr') { DataProvider.setARParams(0.6,0.2,4,300); DataProvider.setMode('sdr'); }
+  if(this.value==='live') {
+    DataProvider.startLive(Math.round(slV('nbands')), slV('gain'));
+  }
+});
+
+// Dataset load
+document.getElementById('sel-dataset').addEventListener('change', function(){
+  DataProvider.loadDataset(this.value,5);
+});
+
+// AR regen
+document.getElementById('btn-regen').addEventListener('click',()=>{
+  DataProvider.setARParams(slV('phi'),slV('sig'),Math.round(slV('nv')),Math.round(slV('np')));
+});
+
+// AR sliders
+slBind('phi', v=>{});  slBind('sig', v=>{});  slBind('nv', v=>{});  slBind('np', v=>{});
+
+// Live sliders
+slBind('nbands', v=>{}); slBind('gain', v=>{});
+
+// Window controls
+slBind('ws', v=>{ DataProvider.setWindowSize(v); });
+document.getElementById('sl-t0').addEventListener('input', function(){
+  DataProvider.setWindowStart(+this.value);
+  document.getElementById('v-t0').textContent=this.value;
+});
+
+// RD sliders
+slBind('Du', v=>RD.Du=v); slBind('Dv', v=>RD.Dv=v);
+slBind('f',  v=>RD.f=v);  slBind('k',  v=>RD.k=v);
+slBind('dt', v=>RD.dt=v); slBind('iter',v=>RD.itersPerFrame=Math.round(v));
+
+// Coupling sliders
+['rw','ew','cw','iw'].forEach(id=>{
+  document.getElementById('sl-'+id)?.addEventListener('input',function(){
+    document.getElementById('v-'+id).textContent=(+this.value).toFixed(2);
+  });
+});
+
+// Audio sliders
+['fbase','rev','wb','lfo'].forEach(id=>{
+  document.getElementById('sl-'+id)?.addEventListener('input',function(){
+    document.getElementById('v-'+id).textContent=(+this.value).toFixed(id==='fbase'?0:2);
+  });
+});
+
+// RD Presets
+document.querySelectorAll('#preset-group .mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('#preset-group .mode-btn').forEach(b=>b.classList.remove('sel'));
+    btn.classList.add('sel');
+    applyPreset(btn.dataset.p);
+  });
+});
+
+// Geometry mode
+document.querySelectorAll('[data-geo]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-geo]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    GeometryRenderer.setMode(btn.dataset.geo);
+  });
+});
+
+// Listen mode pills
+document.getElementById('pill-live').addEventListener('click',()=>{
+  document.getElementById('pill-live').classList.add('active','live');
+  document.getElementById('pill-playback').classList.remove('active');
+  AudioEngine.setMode('live');
+});
+document.getElementById('pill-playback').addEventListener('click',()=>{
+  document.getElementById('pill-playback').classList.add('active');
+  document.getElementById('pill-live').classList.remove('active','live');
+  AudioEngine.setMode('playback');
+});
+
+// Transport buttons
+document.getElementById('btn-sonify').addEventListener('click',()=>AudioEngine.play());
+document.getElementById('btn-stop').addEventListener('click',()=>AudioEngine.stop());
+document.getElementById('tbtn-play').addEventListener('click',()=>AudioEngine.play());
+document.getElementById('tbtn-pause').addEventListener('click',()=>{
+  const btn=document.getElementById('tbtn-pause');
+  if(btn.classList.toggle('on')) AudioEngine.pause(); else AudioEngine.resume();
+});
+document.getElementById('tbtn-stop').addEventListener('click',()=>{ AudioEngine.stop(); document.getElementById('tbtn-pause').classList.remove('on'); });
+document.getElementById('tbtn-loop').addEventListener('click',()=>{
+  const v=!AudioEngine.looping;
+  AudioEngine.setLoop(v);
+  document.getElementById('tbtn-loop').classList.toggle('on',v);
+});
+
+// RD Loop toggle
+document.getElementById('pill-rd').addEventListener('click',()=>{
+  RD.running=!RD.running;
+  document.getElementById('pill-rd').classList.toggle('active',RD.running);
+});
+
+// Text perturbation
+document.getElementById('btn-apply-text').addEventListener('click',()=>{
+  const txt=document.getElementById('text-input').value;
+  if(txt) RD.applyTextPerturbation(txt,slV('iw'));
+});
+
+// Image input
+document.getElementById('img-file').addEventListener('change',function(e){
+  const file=e.target.files[0]; if(!file) return;
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    const th=document.getElementById('img-thumb');
+    th.src=url; th.style.display='inline';
+    const oc=document.createElement('canvas'); oc.width=RD.W; oc.height=RD.H;
+    const octx=oc.getContext('2d'); octx.drawImage(img,0,0,RD.W,RD.H);
+    const px=octx.getImageData(0,0,RD.W,RD.H).data;
+    const rgb=new Uint8Array(RD.W*RD.H*3);
+    for(let i=0;i<RD.W*RD.H;i++){rgb[i*3]=px[i*4];rgb[i*3+1]=px[i*4+1];rgb[i*3+2]=px[i*4+2];}
+    RD.imgData=rgb;
+    RD.applyImagePerturbation(slV('iw'),rgb);
+  };
+  img.src=url;
+});
+
+document.getElementById('audio-file').addEventListener('change',function(e){
+  const file=e.target.files[0];
+  if(file) document.getElementById('audio-fname').textContent=file.name.slice(0,12);
+});
+
+// Resize
+function resizeAll() {
+  const mc=document.getElementById('main-canvas');
+  mc.width=mc.clientWidth; mc.height=mc.clientHeight;
+}
+window.addEventListener('resize',resizeAll);
+
+// ════════════════════════════════════════════════════════════
+// MODULE: FileIngester
+// Acepta: TXT, AUDIO, VIDEO, CSV
+// Convierte cada fuente en series multivariadas para StatsEngine
+// ════════════════════════════════════════════════════════════
+const FileIngester = (() => {
+  let ingestType = 'text';   // 'text'|'audio'|'video'|'csv'
+  let ingestFile = null;
+  let running = false;
+  let intervalHandle = null;
+  let audioCtxIng = null;
+
+  // ── helpers ──
+  function setProgress(pct) {
+    document.getElementById('ingest-progress').style.display = 'block';
+    document.getElementById('ingest-progress-fill').style.width = pct + '%';
+  }
+  function setStatus(msg, color) {
+    const el = document.getElementById('ingest-status');
+    el.textContent = msg; el.style.color = color || 'var(--muted)';
+  }
+  function showPreview(html) {
+    const el = document.getElementById('ingest-preview');
+    el.innerHTML = html; el.style.display = 'block';
+  }
+
+  // ── TEXT ingestion ──
+  // Sliding window of char codes / byte values → nVars series
+  async function ingestText(file, opts) {
+    setStatus('Leyendo texto…', 'var(--c3)');
+    const text = await file.text();
+    const nV = 5;
+    const chunkSize = Math.max(10, Math.floor(text.length / 200));
+    const N = Math.floor(text.length / chunkSize);
+    showPreview(`"${text.slice(0,120).replace(/\n/g,' ')}…"<br>${text.length} chars · ${N} ventanas`);
+    setStatus(`${N} segmentos · ${nV} vars (byte-freq)`, 'var(--c1)');
+
+    // Build series: for each chunk, compute frequency of 5 char categories
+    // as quasi-spectral signature of the text
+    const matrix = Array.from({length:nV}, ()=>[]);
+    const categories = [
+      c => c >= 65 && c <= 90,   // mayúsculas
+      c => c >= 97 && c <= 122,  // minúsculas
+      c => c >= 48 && c <= 57,   // dígitos
+      c => c === 32 || c === 10, // espacio/salto
+      c => c > 127,              // unicode extendido
+    ];
+    for (let i = 0; i < N; i++) {
+      const chunk = text.slice(i*chunkSize, (i+1)*chunkSize);
+      const counts = categories.map(fn => {
+        let cnt = 0;
+        for (let k = 0; k < chunk.length; k++) if (fn(chunk.charCodeAt(k))) cnt++;
+        return cnt / chunk.length;
+      });
+      counts.forEach((v, vi) => matrix[vi].push(v));
+    }
+    return { matrix, N, label: file.name, chunkSize, totalChunks: N, nV };
+  }
+
+  // ── CSV ingestion ──
+  async function ingestCSV(file, nCols) {
+    setStatus('Leyendo CSV…', 'var(--c3)');
+    const text = await file.text();
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    const sep = lines[0].includes('\t') ? '\t' : ',';
+    const headers = lines[0].split(sep).map(h => h.trim().replace(/"/g,''));
+    const useCols = Math.min(nCols, headers.length);
+    document.getElementById('csv-header-preview').textContent =
+      'Columnas: ' + headers.slice(0, useCols).join(' · ');
+    const dataLines = lines.slice(1);
+    const matrix = Array.from({length:useCols}, ()=>[]);
+    for (const line of dataLines) {
+      const parts = line.split(sep);
+      for (let c = 0; c < useCols; c++) {
+        const v = parseFloat((parts[c]||'0').replace(/"/g,'').trim());
+        matrix[c].push(isNaN(v) ? 0 : v);
+      }
+    }
+    // standardize
+    matrix.forEach((col, ci) => {
+      const mean = col.reduce((a,b)=>a+b,0)/col.length;
+      const std = Math.sqrt(col.reduce((s,x)=>s+(x-mean)**2,0)/col.length)||1;
+      matrix[ci] = col.map(x=>(x-mean)/std);
+    });
+    showPreview(`${headers.slice(0,useCols).join(' · ')}<br>${dataLines.length} filas · ${useCols} vars`);
+    setStatus(`${dataLines.length} muestras · ${useCols} variables`, 'var(--c1)');
+    return { matrix, N: dataLines.length, label: file.name, nV: useCols, headers };
+  }
+
+  // ── AUDIO ingestion ──
+  async function ingestAudio(file, windowMs, nBands) {
+    setStatus('Decodificando audio…', 'var(--c3)');
+    const arrayBuf = await file.arrayBuffer();
+    audioCtxIng = audioCtxIng || new (window.AudioContext||window.webkitAudioContext)();
+    const audioBuf = await audioCtxIng.decodeAudioData(arrayBuf);
+    const sr = audioBuf.sampleRate;
+    const channelData = audioBuf.getChannelData(0);
+    const wSamples = Math.floor(sr * windowMs / 1000);
+    const N = Math.floor(channelData.length / wSamples);
+    nBands = Math.min(nBands, 8);
+    const matrix = Array.from({length:nBands}, ()=>[]);
+    // Simple spectral estimation: split wSamples into nBands sub-bands, compute RMS
+    const subBand = Math.floor(wSamples / nBands);
+    for (let i = 0; i < N; i++) {
+      const offset = i * wSamples;
+      for (let b = 0; b < nBands; b++) {
+        let rms = 0;
+        for (let s = 0; s < subBand; s++) {
+          const v = channelData[offset + b*subBand + s] || 0;
+          rms += v*v;
+        }
+        matrix[b].push(Math.sqrt(rms/subBand));
+      }
+    }
+    const dur = channelData.length / sr;
+    showPreview(`${file.name}<br>${dur.toFixed(1)}s · ${audioBuf.numberOfChannels}ch · ${sr}Hz · ${N} ventanas`);
+    setStatus(`${N} frames · ${nBands} bandas espectrales`, 'var(--c1)');
+    return { matrix, N, label: file.name, nV: nBands, duration: dur, sr, wSamples };
+  }
+
+  // ── VIDEO ingestion ──
+  async function ingestVideo(file, windowMs, nBands) {
+    setStatus('Preparando video…', 'var(--c3)');
+    // Extract audio track via decodeAudioData (works for MP4/WebM with audio)
+    const arrayBuf = await file.arrayBuffer();
+    audioCtxIng = audioCtxIng || new (window.AudioContext||window.webkitAudioContext)();
+    let audioBuf;
+    try {
+      audioBuf = await audioCtxIng.decodeAudioData(arrayBuf.slice(0));
+    } catch(e) {
+      // Fallback: generate synthetic series from file bytes as proxy
+      setStatus('Sin pista de audio — usando firma de bytes', 'var(--c3)');
+      const bytes = new Uint8Array(arrayBuf);
+      const chunkSz = Math.max(100, Math.floor(bytes.length/300));
+      const N = Math.floor(bytes.length/chunkSz);
+      const nV = Math.min(nBands,5);
+      const matrix = Array.from({length:nV},()=>[]);
+      for (let i=0;i<N;i++) {
+        const off = i*chunkSz;
+        for (let v=0;v<nV;v++) {
+          let s=0; const step=Math.floor(chunkSz/nV);
+          for(let k=0;k<step;k++) s+=bytes[off+v*step+k]||0;
+          matrix[v].push(s/step/255);
+        }
+      }
+      showPreview(`${file.name}<br>${(bytes.length/1e6).toFixed(1)}MB · ${N} segmentos (firma de bytes)`);
+      setStatus(`${N} frames · ${nV} vars (bytes)`, 'var(--c1)');
+      return { matrix, N, label: file.name, nV };
+    }
+    // If audio decoded OK, use same path as audio
+    const sr = audioBuf.sampleRate;
+    const channelData = audioBuf.getChannelData(0);
+    const wSamples = Math.floor(sr * windowMs / 1000);
+    const N = Math.floor(channelData.length / wSamples);
+    const subBand = Math.max(1, Math.floor(wSamples / nBands));
+    const matrix = Array.from({length:nBands}, ()=>[]);
+    for (let i=0;i<N;i++) {
+      const offset = i*wSamples;
+      for (let b=0;b<nBands;b++) {
+        let rms=0;
+        for (let s=0;s<subBand;s++){const v=channelData[offset+b*subBand+s]||0;rms+=v*v;}
+        matrix[b].push(Math.sqrt(rms/subBand));
+      }
+    }
+    showPreview(`${file.name} (pista audio)<br>${(channelData.length/sr).toFixed(1)}s · ${N} ventanas`);
+    setStatus(`${N} frames · ${nBands} bandas espectrales`, 'var(--c1)');
+    return { matrix, N, label: file.name, nV: nBands };
+  }
+
+  // ── PLAYBACK: stream ingest data into DataProvider + StatsEngine ──
+  function streamIngest(ingestResult, opts) {
+    const { matrix, N, nV } = ingestResult;
+    const speedFactor = +document.getElementById('sl-ingspd').value || 1;
+    const windowSz = 40;
+    const intervalMs = Math.max(30, 80 / speedFactor);
+    let cursor = 0;
+    running = true;
+
+    // Inject matrix into DataProvider as external dataset
+    DataProvider.injectExternalMatrix(matrix, nV, N, ingestResult.label);
+    DataProvider.setWindowSize(windowSz);
+
+    if (opts.autoRec) AnimationRecorder.start();
+    if (opts.autoSound) AudioEngine.play();
+
+    setProgress(0);
+    setStatus('▶ reproduciendo…', 'var(--c5)');
+
+    intervalHandle = setInterval(() => {
+      if (!running || cursor >= N - windowSz) {
+        clearInterval(intervalHandle);
+        running = false;
+        setStatus('✓ ingesta completa', 'var(--c5)');
+        setProgress(100);
+        if (opts.autoRec) setTimeout(()=>AnimationRecorder.stop(), 800);
+        return;
+      }
+      DataProvider.setWindowStart(cursor);
+      cursor += Math.max(1, Math.round(speedFactor));
+      setProgress(cursor/N*100);
+    }, intervalMs);
+  }
+
+  function stopIngest() {
+    running = false;
+    if (intervalHandle) { clearInterval(intervalHandle); intervalHandle = null; }
+    setStatus('■ detenido', 'var(--c2)');
+  }
+
+  return {
+    setType(t){ ingestType=t; },
+    setFile(f){ ingestFile=f; },
+    get ingestType(){ return ingestType; },
+    async start(opts) {
+      if (!ingestFile) { setStatus('⚠ sin archivo', 'var(--c2)'); return; }
+      let result;
+      const windowMs = +document.getElementById('sl-ingwin').value || 100;
+      const nBands = 5;
+      const nCols = +document.getElementById('sl-csvcols').value || 5;
+      try {
+        if (ingestType==='text')  result = await ingestText(ingestFile);
+        if (ingestType==='audio') result = await ingestAudio(ingestFile, windowMs, nBands);
+        if (ingestType==='video') result = await ingestVideo(ingestFile, windowMs, nBands);
+        if (ingestType==='csv')   result = await ingestCSV(ingestFile, nCols);
+      } catch(e) {
+        setStatus('✕ error: '+e.message, 'var(--c2)'); return;
+      }
+      streamIngest(result, opts);
+    },
+    stop: stopIngest,
+    get running(){ return running; },
+  };
+})();
+
+// ════════════════════════════════════════════════════════════
+// MODULE: AnimationRecorder
+// Graba canvas compuesto 2×2: Clifford | Lissajous | Toro | RD
+// Output: WebM via MediaRecorder
+// ════════════════════════════════════════════════════════════
+const AnimationRecorder = (() => {
+  let mediaRecorder = null;
+  let chunks = [];
+  let recording = false;
+  let startTime = 0;
+  let frameCount = 0;
+  let timerInterval = null;
+  let rafHandle = null;
+
+  // Offscreen composite canvas (4 views)
+  const compCanvas = document.createElement('canvas');
+  const compCtx = compCanvas.getContext('2d');
+  const CELL = 320; // each cell = 320×320 → total 640×640
+
+  compCanvas.width = CELL*2;
+  compCanvas.height = CELL*2;
+
+  // We'll render each geometry mode into an offscreen canvas
+  const offG = document.createElement('canvas');
+  offG.width = CELL; offG.height = CELL;
+  const offGCtx = offG.getContext('2d');
+
+  function compositeFrame() {
+    const eigs = StatsEngine.eigenvalues;
+    const risk = StatsEngine.risk;
+    const entropy = StatsEngine.entropy;
+
+    compCtx.fillStyle = '#020507';
+    compCtx.fillRect(0, 0, compCanvas.width, compCanvas.height);
+
+    // ── Cell 0: Clifford ──
+    offGCtx.clearRect(0,0,CELL,CELL);
+    offGCtx.fillStyle = 'rgba(2,5,7,0.12)'; offGCtx.fillRect(0,0,CELL,CELL);
+    renderGeoToCtx(offGCtx, CELL, CELL, 'clifford', eigs, entropy, risk);
+    compCtx.drawImage(offG, 0, 0);
+
+    // ── Cell 1: Lissajous ──
+    offGCtx.clearRect(0,0,CELL,CELL);
+    offGCtx.fillStyle = 'rgba(2,5,7,0.08)'; offGCtx.fillRect(0,0,CELL,CELL);
+    renderGeoToCtx(offGCtx, CELL, CELL, 'lissajous', eigs, entropy, risk);
+    compCtx.drawImage(offG, CELL, 0);
+
+    // ── Cell 2: Torus ──
+    offGCtx.clearRect(0,0,CELL,CELL);
+    offGCtx.fillStyle = 'rgba(2,5,7,0.12)'; offGCtx.fillRect(0,0,CELL,CELL);
+    renderGeoToCtx(offGCtx, CELL, CELL, 'torus', eigs, entropy, risk);
+    compCtx.drawImage(offG, 0, CELL);
+
+    // ── Cell 3: RD map ──
+    const rdSrc = document.getElementById('rd-canvas');
+    if (rdSrc.width > 0) compCtx.drawImage(rdSrc, CELL, CELL, CELL, CELL);
+
+    // ── labels & metrics overlay ──
+    compCtx.font = '600 9px Inconsolata, monospace';
+    compCtx.fillStyle = 'rgba(0,255,224,0.7)';
+    compCtx.fillText('CLIFFORD', 6, 14);
+    compCtx.fillText('LISSAJOUS', CELL+6, 14);
+    compCtx.fillStyle = 'rgba(255,225,77,0.7)';
+    compCtx.fillText('TORO', 6, CELL+14);
+    compCtx.fillStyle = 'rgba(255,45,107,0.7)';
+    compCtx.fillText('TURING RD', CELL+6, CELL+14);
+
+    // center metrics
+    compCtx.fillStyle = 'rgba(0,255,224,0.4)';
+    compCtx.font = '7px Inconsolata, monospace';
+    const ts = new Date().toISOString().slice(11,19);
+    compCtx.fillText(`λ₁=${(eigs[0]||0).toFixed(3)} R=${risk.toFixed(3)} H=${entropy.toFixed(3)} ${ts}`, 6, compCanvas.height-6);
+
+    // dividers
+    compCtx.strokeStyle = 'rgba(9,24,32,0.9)';
+    compCtx.lineWidth = 2;
+    compCtx.beginPath(); compCtx.moveTo(CELL,0); compCtx.lineTo(CELL,CELL*2); compCtx.stroke();
+    compCtx.beginPath(); compCtx.moveTo(0,CELL); compCtx.lineTo(CELL*2,CELL); compCtx.stroke();
+  }
+
+  // Renders geometry to an arbitrary ctx without touching the main canvas
+  let recPhase = 0;
+  let recLissPhase = 0;
+  let recCliffordX = 0.1, recCliffordY = 0.1;
+  let recCliffordParams = {a:-1.6,b:1.7,c:0.9,d:-0.5};
+
+  function renderGeoToCtx(ctx, w, h, mode, eigs, entropy, risk) {
+    const conf = StatsEngine.confidence;
+    if (mode === 'clifford') {
+      // Update params from metrics
+      recCliffordParams.a = Math.min(-1.2,Math.max(-2.2,-1.5-(eigs[0]||0)*0.6-entropy*0.1));
+      recCliffordParams.b = Math.min(2.2,Math.max(1.2,1.5+(eigs[1]||0)*0.8));
+      recCliffordParams.c = Math.min(1.6,Math.max(0.5,0.7+(eigs[2]||0)*0.9));
+      recCliffordParams.d = Math.min(0.2,Math.max(-1.2,-0.6+risk*0.8));
+      const {a,b,c,d}=recCliffordParams;
+      let pts=[],x=recCliffordX,y=recCliffordY;
+      for(let i=0;i<4500;i++){let nx=Math.sin(a*y)+c*Math.cos(a*x),ny=Math.sin(b*x)+d*Math.cos(b*y);x=nx;y=ny;if(i>=150)pts.push([x,y]);}
+      recCliffordX=x;recCliffordY=y;
+      if(pts.length>50){let cx=0,cy=0;for(const p of pts){cx+=p[0];cy+=p[1];}cx/=pts.length;cy/=pts.length;let sp=0;for(const p of pts)sp+=(p[0]-cx)**2+(p[1]-cy)**2;if(Math.sqrt(sp/pts.length)<0.05){recCliffordX=(Math.random()-0.5)*1.5;recCliffordY=(Math.random()-0.5)*1.5;}}
+      let mnX=Infinity,mxX=-Infinity,mnY=Infinity,mxY=-Infinity;
+      for(const p of pts){mnX=Math.min(mnX,p[0]);mxX=Math.max(mxX,p[0]);mnY=Math.min(mnY,p[1]);mxY=Math.max(mxY,p[1]);}
+      const rx=Math.max(0.01,mxX-mnX),ry=Math.max(0.01,mxY-mnY);
+      const sx=w/(rx+0.2),sy=h/(ry+0.2);
+      const ox=w/2-(mnX+mxX)/2*sx,oy=h/2-(mnY+mxY)/2*sy;
+      const sz=Math.max(1,Math.min(2.5,1.2+risk*3));
+      for(const p of pts){
+        const px2=p[0]*sx+ox,py2=p[1]*sy+oy;
+        if(px2>=0&&px2<w&&py2>=0&&py2<h){
+          ctx.fillStyle=`rgba(${Math.round(50+risk*200)},${Math.round(200-risk*100)},${Math.round(200+(eigs[0]||0)*55)},${0.3+(eigs[0]||0)*0.5})`;
+          ctx.fillRect(px2,py2,sz,sz);
+        }
+      }
+    } else if (mode === 'lissajous') {
+      const cx=w/2,cy=h/2,R=Math.min(w,h)*0.42;
+      const la=Math.max(1,Math.round(1+(eigs[0]||0.5)*4));
+      const lb=Math.max(1,Math.round(1+(eigs[1]||0.3)*5));
+      const delta=recLissPhase*0.3+Math.PI/4+entropy*0.5;
+      ctx.beginPath();
+      for(let i=0;i<=2000;i++){const t=i/2000*2*Math.PI;ctx.lineTo(cx+R*Math.sin(la*t+delta),cy+R*Math.sin(lb*t));}
+      ctx.strokeStyle=`hsla(${160+risk*80},80%,60%,${0.5+conf*0.4})`;
+      ctx.lineWidth=0.8+risk*2.5;ctx.stroke();
+    } else if (mode === 'torus') {
+      const cx=w/2,cy=h/2,sc=Math.min(w,h)*0.32;
+      const R=1.0,r=0.4,angle=recPhase*0.18;
+      const p=Math.max(1,Math.round(1+(eigs[0]||0.3)*4));
+      const q=Math.max(1,Math.round(1+(eigs[1]||0.5)*5));
+      const tpj=(th,ph)=>{const cA=Math.cos(angle),sA=Math.sin(angle),x=(R+r*Math.cos(ph))*Math.cos(th),y=(R+r*Math.cos(ph))*Math.sin(th),z=r*Math.sin(ph);return{x:x*cA-z*sA,ry:y*0.7+(x*sA+z*cA)*0.3};};
+      const nS=3000;ctx.beginPath();
+      for(let i=0;i<=nS;i++){const t=i/nS*2*Math.PI*Math.max(p,q),pt=tpj(p*t,q*t);const sx2=cx+pt.x*sc,sy2=cy-pt.ry*sc;if(i===0)ctx.moveTo(sx2,sy2);else ctx.lineTo(sx2,sy2);}
+      ctx.strokeStyle=`hsla(${40+risk*200},80%,60%,${0.5+conf*0.4})`;ctx.lineWidth=1+risk*2;ctx.stroke();
+    }
+    recPhase+=0.015+risk*0.08;
+    recLissPhase+=0.01;
+  }
+
+  function captureLoop() {
+    if (!recording) return;
+    compositeFrame();
+    frameCount++;
+    document.getElementById('rec-frames').textContent = frameCount;
+    const mb = (chunks.reduce((s,c)=>s+c.size,0)/1e6).toFixed(1);
+    document.getElementById('rec-mb').textContent = mb;
+    rafHandle = requestAnimationFrame(captureLoop);
+  }
+
+  function updateTimer() {
+    const elapsed = Math.floor((Date.now()-startTime)/1000);
+    const m = String(Math.floor(elapsed/60)).padStart(2,'0');
+    const s = String(elapsed%60).padStart(2,'0');
+    document.getElementById('rec-timer').textContent = `${m}:${s}`;
+  }
+
+  function start() {
+    if (recording) return;
+    chunks = []; frameCount = 0;
+    const stream = compCanvas.captureStream(25);
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9'
+      : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4';
+    mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 });
+    mediaRecorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
+    mediaRecorder.onstop = saveVideo;
+    mediaRecorder.start(200);
+    recording = true;
+    startTime = Date.now();
+    document.getElementById('rec-overlay').classList.add('visible');
+    document.getElementById('btn-rec-start').classList.add('active');
+    timerInterval = setInterval(updateTimer, 1000);
+    rafHandle = requestAnimationFrame(captureLoop);
+  }
+
+  function stop() {
+    if (!recording) return;
+    recording = false;
+    cancelAnimationFrame(rafHandle);
+    clearInterval(timerInterval);
+    mediaRecorder.stop();
+    document.getElementById('rec-overlay').classList.remove('visible');
+    document.getElementById('btn-rec-start').classList.remove('active');
+  }
+
+  function saveVideo() {
+    const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0,19).replace(/[:.]/g,'-');
+    a.href = url; a.download = `GuetaRadio_${ts}.webm`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
+  return { start, stop, get recording(){ return recording; } };
+})();
+
+// ════════════════════════════════════════════════════════════
+// Patch: DataProvider.injectExternalMatrix
+// ════════════════════════════════════════════════════════════
+DataProvider.injectExternalMatrix = function(matrix, nV, N, label) {
+  // Expose internal state via a thin injection mechanism
+  // We call loadDataset-like logic but with pre-built matrix
+  DataProvider._extMatrix = matrix;
+  DataProvider._extN = N;
+  DataProvider._extNV = nV;
+  DataProvider._extLabel = label;
+  DataProvider.setMode('external');
+  // Patch getCurrentWindow to handle external mode
+  const origGet = DataProvider.getCurrentWindow;
+  DataProvider.getCurrentWindow = function() {
+    if (this.mode !== 'external') return origGet.call(this);
+    const ws = this.windowSize;
+    const start = this._extWS || 0;
+    const end = Math.min(start+ws, N);
+    return this._extMatrix.map(row => row.slice(start, end));
+  };
+  DataProvider._extWS = 0;
+  const origSetStart = DataProvider.setWindowStart;
+  DataProvider.setWindowStart = function(t) {
+    if (this.mode === 'external') { this._extWS = t; return; }
+    origSetStart.call(this, t);
+  };
+  document.getElementById('ft-src').textContent = label.slice(0,12).toUpperCase();
+};
+
+// ════════════════════════════════════════════════════════════
+// INGEST MODAL UI LOGIC
+// ════════════════════════════════════════════════════════════
+(function setupIngestUI() {
+  const TYPE_META = {
+    text:  { icon:'📄', accept:'.txt,.md,.text', hint:'.txt .md (texto plano)', speed:false, csv:false },
+    audio: { icon:'🎙️', accept:'.wav,.mp3,.ogg,.flac,.m4a,.aac', hint:'.wav .mp3 .ogg .flac', speed:true, csv:false },
+    video: { icon:'🎬', accept:'.mp4,.webm,.mov,.mkv,.avi', hint:'.mp4 .webm .mov (pista de audio)', speed:true, csv:false },
+    csv:   { icon:'📊', accept:'.csv,.tsv,.txt', hint:'.csv .tsv (primera fila = encabezados)', speed:false, csv:true },
+  };
+
+  function setIngestType(t) {
+    FileIngester.setType(t);
+    const m = TYPE_META[t];
+    document.getElementById('ingest-icon').textContent = m.icon;
+    document.getElementById('ingest-hint').innerHTML =
+      `Arrastra aquí o haz clic<br><span style="color:var(--dim)">${m.hint}</span>`;
+    document.getElementById('ingest-file-input').accept = m.accept;
+    document.getElementById('ingest-speed-row').style.display = m.speed ? 'block' : 'none';
+    document.getElementById('ingest-csv-opts').style.display = m.csv ? 'block' : 'none';
+    document.getElementById('ingest-progress').style.display = 'none';
+    document.getElementById('ingest-preview').style.display = 'none';
+    document.getElementById('ingest-status').textContent = '— listo para ingestar —';
+    document.getElementById('ingest-status').style.color = 'var(--muted)';
+  }
+
+  // Tab switching
+  document.querySelectorAll('.itab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.itab').forEach(b=>b.classList.remove('sel'));
+      btn.classList.add('sel');
+      setIngestType(btn.dataset.itype);
+    });
+  });
+
+  // File input change
+  document.getElementById('ingest-file-input').addEventListener('change', function(e) {
+    const f = e.target.files[0]; if(!f) return;
+    FileIngester.setFile(f);
+    document.getElementById('ingest-status').textContent = `✓ ${f.name} (${(f.size/1024).toFixed(0)} KB)`;
+    document.getElementById('ingest-status').style.color = 'var(--c5)';
+  });
+
+  // Drag & drop
+  const drop = document.getElementById('ingest-drop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('drag');
+    const f = e.dataTransfer.files[0]; if(!f) return;
+    FileIngester.setFile(f);
+    document.getElementById('ingest-status').textContent = `✓ ${f.name} (${(f.size/1024).toFixed(0)} KB)`;
+    document.getElementById('ingest-status').style.color = 'var(--c5)';
+  });
+
+  // Sliders
+  document.getElementById('sl-ingspd').addEventListener('input', function(){
+    document.getElementById('v-ingspd').textContent = (+this.value).toFixed(2)+'×';
+  });
+  document.getElementById('sl-ingwin').addEventListener('input', function(){
+    document.getElementById('v-ingwin').textContent = this.value;
+  });
+  document.getElementById('sl-csvcols').addEventListener('input', function(){
+    document.getElementById('v-csvcols').textContent = this.value;
+  });
+
+  // Open / close modal
+  document.getElementById('btn-open-ingest').addEventListener('click', () => {
+    document.getElementById('ingest-modal').classList.add('open');
+  });
+  document.getElementById('ingest-cancel').addEventListener('click', () => {
+    document.getElementById('ingest-modal').classList.remove('open');
+    FileIngester.stop();
+  });
+
+  // Start ingestion
+  document.getElementById('ingest-start').addEventListener('click', async () => {
+    document.getElementById('ingest-modal').classList.remove('open');
+    const autoRec  = document.getElementById('ingest-autorec').checked;
+    const autoSnd  = document.getElementById('ingest-autosound').checked;
+    await FileIngester.start({ autoRec, autoSound: autoSnd });
+  });
+
+  // Keyboard close
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('ingest-modal').classList.remove('open');
+  });
+})();
+
+// ════════════════════════════════════════════════════════════
+// RECORDER BUTTON EVENTS
+// ════════════════════════════════════════════════════════════
+document.getElementById('btn-rec-start').addEventListener('click', () => {
+  if (AnimationRecorder.recording) AnimationRecorder.stop();
+  else AnimationRecorder.start();
+});
+document.getElementById('btn-rec-stop').addEventListener('click', () => AnimationRecorder.stop());
+
+// ════════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  resizeAll();
+  GeometryRenderer.init(document.getElementById('main-canvas'));
+  RD.init();
+  RD.running=true;
+  document.getElementById('pill-rd').classList.add('active');
+  // Load default dataset
+  DataProvider.loadDataset('diversity',5);
+  // Sync slider labels
+  ['Du','Dv','f','k','dt','iter','ws','phi','sig','nv','np','rw','ew','cw','iw','fbase','rev','wb','lfo','nbands','gain'].forEach(id=>{
+    const el=document.getElementById('sl-'+id); if(!el) return;
+    const vEl=document.getElementById('v-'+id); if(!vEl) return;
+    const v=+el.value;
+    const step=el.step||'1';
+    vEl.textContent=v.toFixed(step.includes('0.00')?4:step.includes('0.0')?2:step==='1'?0:2);
+  });
+  mainLoop();
+  console.log('GUETA · RADIO — iniciado · DataProvider + StatsEngine + GeometryRenderer + RD + AudioEngine');
+});
+</script>
+</body>
+</html>
