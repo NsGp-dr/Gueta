@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GUETA · TURING · Motor de Síntesis Climática</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@300;400;600;700;900&family=DM+Serif+Display:ital@0;1&display=swap');
+
+:root {
+  --bg:    #020507;
+  --bg2:   #030a0f;
+  --bg3:   #040d14;
+  --bord:  #091820;
+  --bord2: #0f2535;
+  --c1:    #00ffe0;
+  --c2:    #ff2d6b;
+  --c3:    #ffe14d;
+  --c4:    #7b4fff;
+  --c5:    #00ff99;
+  --muted: #2d5a6b;
+  --text:  #6fa8bd;
+  --bright:#c8e8f2;
+  --dim:   #12303f;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; background:var(--bg); color:var(--text); font-family:'Inconsolata',monospace; font-size:11px; overflow:hidden; }
+
+/* ── SPLASH SCREEN ── */
+#splash {
+  position:fixed; inset:0; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:9999; gap:24px;
+  background: radial-gradient(ellipse 60% 40% at 50% 50%, #04121c 0%, #020507 100%);
+}
+#splash::before {
+  content:'';
+  position:absolute; inset:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,255,224,0.02) 39px, rgba(0,255,224,0.02) 40px),
+              repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,255,224,0.02) 39px, rgba(0,255,224,0.02) 40px);
+  pointer-events:none;
+}
+.splash-logo {
+  font-family:'DM Serif Display',serif;
+  font-size:42px; color:var(--c1);
+  text-shadow: 0 0 40px rgba(0,255,224,0.5), 0 0 80px rgba(0,255,224,0.2);
+  letter-spacing:6px; text-align:center; line-height:1.1;
+}
+.splash-logo em { color:var(--c2); font-style:italic; }
+.splash-sub {
+  font-size:9px; letter-spacing:5px; color:var(--muted); text-align:center;
+  text-transform:uppercase;
+}
+.splash-form {
+  background:rgba(4,13,20,0.9); border:1px solid var(--bord2);
+  padding:28px 32px; border-radius:4px; width:480px;
+  display:flex; flex-direction:column; gap:14px;
+  box-shadow: 0 0 60px rgba(0,255,224,0.05);
+}
+.splash-form h3 { font-size:8px; letter-spacing:3px; color:var(--c4); margin-bottom:4px; }
+.field-row { display:flex; gap:10px; align-items:flex-end; }
+.field { flex:1; display:flex; flex-direction:column; gap:4px; }
+.field label { font-size:7.5px; letter-spacing:1.5px; color:var(--muted); }
+.field input, .field select {
+  background:var(--bg3); border:1px solid var(--bord2);
+  color:var(--bright); font-family:'Inconsolata',monospace; font-size:10px;
+  padding:6px 9px; border-radius:2px; outline:none; width:100%;
+  transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus { border-color:var(--c1); }
+.field select option { background:var(--bg3); }
+
+.win-row { display:flex; align-items:center; gap:10px; }
+.win-label { font-size:7.5px; letter-spacing:1.5px; color:var(--muted); white-space:nowrap; }
+input[type=range] { flex:1; accent-color:var(--c1); }
+.win-val { font-size:10px; color:var(--c1); width:60px; text-align:right; }
+
+.var-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.var-item { display:flex; align-items:center; gap:6px; cursor:pointer; padding:4px 8px; border:1px solid var(--bord); border-radius:2px; transition:all 0.15s; }
+.var-item:hover { border-color:var(--muted); }
+.var-item.sel { border-color:var(--c1); background:rgba(0,255,224,0.05); }
+.var-item input[type=checkbox] { accent-color:var(--c1); }
+.var-item span { font-size:8px; letter-spacing:1px; color:var(--text); }
+
+.launch-btn {
+  background:linear-gradient(135deg, rgba(0,255,224,0.12) 0%, rgba(0,255,224,0.04) 100%);
+  border:1px solid var(--c1); color:var(--c1);
+  font-family:'Inconsolata',monospace; font-size:9px; letter-spacing:3px;
+  padding:10px; border-radius:2px; cursor:pointer; text-align:center;
+  transition:all 0.2s; text-transform:uppercase;
+}
+.launch-btn:hover { background:rgba(0,255,224,0.18); box-shadow:0 0 20px rgba(0,255,224,0.15); }
+.launch-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+.splash-status { font-size:8px; color:var(--muted); letter-spacing:1px; text-align:center; min-height:12px; }
+.splash-status.err { color:var(--c2); }
+.splash-status.ok  { color:var(--c5); }
+
+/* ── MAIN APP ── */
+#app {
+  height:100vh;
+  grid-template-rows:44px 1fr 26px;
+  grid-template-columns:220px 1fr 1fr 220px;
+  display:none;
+}
+#app.visible { display:grid; }
+
+/* HEADER */
+header {
+  grid-column:1/-1;
+  display:flex; align-items:center; padding:0 12px; gap:10px;
+  border-bottom:1px solid var(--bord);
+  background:linear-gradient(90deg,#020507 0%,#04090e 100%);
+  position:relative; overflow:hidden;
+}
+header::before {
+  content:''; position:absolute; inset:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(0,255,224,0.012) 60px,rgba(0,255,224,0.012) 61px);
+  pointer-events:none;
+}
+.logo { font-family:'DM Serif Display',serif; font-size:16px; color:var(--c1); text-shadow:0 0 18px rgba(0,255,224,0.35); letter-spacing:2px; flex-shrink:0; }
+.logo em { color:var(--c2); font-style:italic; }
+.logo sub { font-size:7px; letter-spacing:3px; color:var(--muted); font-family:'Inconsolata',monospace; display:block; margin-top:1px; }
+.vsep { width:1px; height:22px; background:var(--bord2); flex-shrink:0; }
+.hdr-sep { flex:1; }
+
+.pill {
+  display:flex; align-items:center; gap:5px;
+  padding:3px 9px; border:1px solid var(--bord2);
+  background:var(--bg3); border-radius:2px;
+  font-size:8px; letter-spacing:1.5px; color:var(--muted);
+  cursor:pointer; transition:all 0.15s; user-select:none;
+}
+.pill:hover { border-color:var(--c1); color:var(--c1); }
+.pill.active { border-color:var(--c1); color:var(--c1); background:rgba(0,255,224,0.06); }
+.pill.warn { border-color:var(--c3); color:var(--c3); }
+.pill.danger { border-color:var(--c2); color:var(--c2); }
+.pill.danger:hover { background:rgba(255,45,107,0.1); }
+.pill .dot { width:5px; height:5px; border-radius:50%; background:var(--dim); flex-shrink:0; }
+.pill.active .dot { background:var(--c1); box-shadow:0 0 6px var(--c1); animation:pulse 2s infinite; }
+.pill.warn .dot  { background:var(--c3); box-shadow:0 0 6px var(--c3); animation:pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+.hdr-info { font-size:8px; color:var(--muted); letter-spacing:1px; }
+.hdr-info span { color:var(--c1); }
+
+/* PANELS */
+.left, .right {
+  border-right:1px solid var(--bord);
+  background:var(--bg2);
+  overflow-y:auto;
+  display:flex; flex-direction:column; gap:5px;
+  padding:7px;
+}
+.right { border-right:none; border-left:1px solid var(--bord); }
+
+.card { background:rgba(2,8,12,0.7); border:1px solid var(--bord); border-radius:3px; padding:7px; }
+.card-title { font-size:7.5px; letter-spacing:2.5px; color:var(--c4); margin-bottom:7px; display:flex; align-items:center; gap:6px; }
+.card-title::before { content:''; width:8px; height:1px; background:var(--c4); }
+.card-title.c1 { color:var(--c1); } .card-title.c1::before { background:var(--c1); }
+.card-title.c2 { color:var(--c2); } .card-title.c2::before { background:var(--c2); }
+.card-title.c3 { color:var(--c3); } .card-title.c3::before { background:var(--c3); }
+.card-title.c5 { color:var(--c5); } .card-title.c5::before { background:var(--c5); }
+
+.row { margin:4px 0; }
+.row label { font-size:7px; color:var(--muted); display:flex; justify-content:space-between; margin-bottom:2px; }
+.row label span { color:var(--bright); }
+.row input[type=range] { width:100%; accent-color:var(--c1); }
+
+.metric-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:4px; }
+.mval { background:var(--bg3); border:1px solid var(--bord); padding:5px; border-radius:2px; }
+.mval .lbl { font-size:7px; letter-spacing:1.5px; color:var(--muted); }
+.mval .val { font-size:13px; color:var(--bright); font-weight:700; margin-top:2px; }
+.mval .val.risk { color:var(--c2); }
+.mval .val.conf { color:var(--c5); }
+.mval .val.eig  { color:var(--c4); }
+.mval .val.ent  { color:var(--c3); }
+
+.gauge-track { height:3px; background:var(--bord); border-radius:2px; margin:4px 0; overflow:hidden; }
+.gauge-fill { height:100%; border-radius:2px; transition:width 0.4s; }
+
+canvas.mini { width:100%; height:55px; background:var(--bg3); border:1px solid var(--bord); border-radius:2px; display:block; margin-top:4px; }
+
+.mode-btn {
+  font-family:'Inconsolata',monospace;
+  font-size:7.5px; letter-spacing:1.5px; padding:3px 7px;
+  border:1px solid var(--dim); color:var(--dim);
+  background:none; cursor:pointer; border-radius:2px; transition:all 0.15s;
+}
+.mode-btn:hover { border-color:var(--c4); color:var(--c4); }
+.mode-btn.sel { border-color:var(--c1); color:var(--c1); background:rgba(0,255,224,0.07); }
+.mode-btn.rec { border-color:var(--c2); color:var(--c2); }
+.mode-btn.rec.active { background:rgba(255,45,107,0.15); animation:pulse 0.8s infinite; }
+.btn-row { display:flex; gap:4px; flex-wrap:wrap; margin-top:5px; }
+
+/* CANVASES */
+.rd-panel {
+  grid-row:2; grid-column:2;
+  position:relative; background:var(--bg); overflow:hidden;
+}
+#rd-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; image-rendering:pixelated; }
+.panel-hud {
+  position:absolute; top:8px; left:8px;
+  font-size:8px; background:rgba(2,5,7,0.8);
+  padding:5px 8px; border-radius:2px; pointer-events:none;
+  border:1px solid var(--bord2); line-height:1.8; z-index:10;
+}
+.panel-label {
+  position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
+  font-size:7.5px; letter-spacing:2px; color:var(--muted); pointer-events:none; z-index:10;
+}
+
+.viz-panel {
+  grid-row:2; grid-column:3;
+  position:relative; background:var(--bg); overflow:hidden;
+  border-left:1px solid var(--bord);
+  display:flex; flex-direction:column;
+}
+.viz-tabs { display:flex; border-bottom:1px solid var(--bord); background:var(--bg2); flex-shrink:0; }
+.vtab {
+  font-family:'Inconsolata',monospace;
+  font-size:7.5px; letter-spacing:1.5px; padding:5px 10px;
+  border:none; background:none; cursor:pointer;
+  color:var(--muted); border-bottom:2px solid transparent; transition:all 0.15s;
+}
+.vtab:hover { color:var(--text); }
+.vtab.sel { color:var(--c1); border-bottom-color:var(--c1); }
+.viz-canvas-wrap { flex:1; position:relative; }
+#viz-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.viz-overlay {
+  position:absolute; bottom:8px; right:8px;
+  font-size:8px; background:rgba(2,5,7,0.75);
+  padding:4px 7px; border-radius:2px; line-height:1.7;
+  border:1px solid var(--bord); pointer-events:none;
+}
+
+/* PROGRESS BAR */
+.score-progress {
+  position:absolute; bottom:0; left:0; right:0; height:3px;
+  background:var(--bord); z-index:20;
+}
+.score-progress-fill { height:100%; background:var(--c2); width:0%; transition:width 0.1s linear; }
+
+/* FOOTER */
+footer {
+  grid-column:1/-1;
+  display:flex; align-items:center; gap:16px;
+  padding:0 12px; border-top:1px solid var(--bord);
+  background:var(--bg2); font-size:8px; overflow:hidden;
+}
+.ft-item { display:flex; gap:5px; align-items:center; white-space:nowrap; }
+.ft-item .k { color:var(--dim); letter-spacing:1px; }
+.ft-item .v { color:var(--c1); }
+.ft-scroll { animation:ftscroll 25s linear infinite; display:flex; gap:24px; }
+@keyframes ftscroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+/* WEATHER DATA STRIP */
+.wx-strip {
+  display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;
+}
+.wx-badge {
+  font-size:7px; padding:2px 6px; border-radius:2px;
+  border:1px solid var(--bord2); color:var(--muted); letter-spacing:1px;
+  display:flex; gap:4px; align-items:center;
+}
+.wx-badge .wx-val { color:var(--bright); }
+
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-track { background:var(--bg2); }
+::-webkit-scrollbar-thumb { background:var(--dim); border-radius:2px; }
+
+/* REC INDICATOR */
+.rec-dot {
+  width:8px; height:8px; border-radius:50%;
+  background:var(--c2); flex-shrink:0;
+  animation:pulse 0.7s infinite;
+}
+
+/* DATA TABLE */
+.data-table {
+  width:100%; font-size:7.5px; border-collapse:collapse; margin-top:4px;
+}
+.data-table th { color:var(--muted); letter-spacing:1.5px; text-align:left; padding:2px 4px; border-bottom:1px solid var(--bord); }
+.data-table td { color:var(--bright); padding:2px 4px; border-bottom:1px solid var(--bord2); }
+.data-table tr:hover td { background:rgba(0,255,224,0.03); }
+
+/* SCORE STATUS */
+#score-status {
+  font-size:8px; color:var(--c3); letter-spacing:1.5px; text-align:center;
+  padding:4px; min-height:14px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ SPLASH ══════════════════ -->
+<div id="splash">
+  <div class="splash-logo">GUETA <em>·</em> TURING<br><span style="font-size:22px;letter-spacing:8px">MOTOR CLIMÁTICO</span></div>
+  <div class="splash-sub">Serie temporal → Huella de riesgo → Geometrización → Partitura sonora</div>
+
+  <div class="splash-form">
+    <h3>⊕ CONFIGURAR INGESTA</h3>
+
+    <div class="field-row">
+      <div class="field">
+        <label>UBICACIÓN (lat)</label>
+        <input type="number" id="sp-lat" value="4.711" step="0.001" placeholder="4.711">
+      </div>
+      <div class="field">
+        <label>UBICACIÓN (lon)</label>
+        <input type="number" id="sp-lon" value="-74.0721" step="0.001" placeholder="-74.0721">
+      </div>
+      <div class="field" style="flex:0.6">
+        <label>CIUDAD</label>
+        <input type="text" id="sp-city" value="Bogotá" placeholder="etiqueta">
+      </div>
+    </div>
+
+    <div>
+      <div class="win-label" style="font-size:7.5px;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px">VARIABLES DE INTERÉS (seleccionar variable de riesgo)</div>
+      <div class="var-grid" id="var-grid">
+        <label class="var-item sel"><input type="checkbox" value="temperature_2m" checked> <span>TEMPERATURA 2m (°C)</span></label>
+        <label class="var-item"><input type="checkbox" value="relative_humidity_2m"> <span>HUMEDAD REL (%)</span></label>
+        <label class="var-item"><input type="checkbox" value="precipitation"> <span>PRECIPITACIÓN (mm)</span></label>
+        <label class="var-item"><input type="checkbox" value="wind_speed_10m"> <span>VIENTO 10m (km/h)</span></label>
+        <label class="var-item"><input type="checkbox" value="surface_pressure"> <span>PRESIÓN SUPERFICIAL</span></label>
+        <label class="var-item"><input type="checkbox" value="cloud_cover"> <span>NUBOSIDAD (%)</span></label>
+      </div>
+    </div>
+
+    <div>
+      <div class="win-label" style="font-size:7.5px;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px">VARIABLE OBJETIVO DE RIESGO</div>
+      <select class="field" id="sp-risk-var" style="width:100%;background:var(--bg3);border:1px solid var(--bord2);color:var(--bright);font-family:Inconsolata,monospace;font-size:10px;padding:6px 9px;border-radius:2px;outline:none;">
+        <option value="temperature_2m">TEMPERATURA 2m</option>
+        <option value="relative_humidity_2m">HUMEDAD REL</option>
+        <option value="precipitation">PRECIPITACIÓN</option>
+        <option value="wind_speed_10m">VIENTO</option>
+        <option value="surface_pressure">PRESIÓN</option>
+        <option value="cloud_cover">NUBOSIDAD</option>
+      </select>
+    </div>
+
+    <div>
+      <div class="win-label" style="font-size:7.5px;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px">TAMAÑO DE VENTANA DE ANÁLISIS</div>
+      <div class="win-row">
+        <span class="win-label">HORAS →</span>
+        <input type="range" id="sp-win" min="12" max="168" step="6" value="48">
+        <span class="win-val" id="sp-win-v">48h</span>
+      </div>
+      <div class="win-row" style="margin-top:4px">
+        <span class="win-label">DÍAS HISTORIA →</span>
+        <input type="range" id="sp-days" min="3" max="30" step="1" value="7">
+        <span class="win-val" id="sp-days-v">7d</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="win-label" style="font-size:7.5px;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px">DURACIÓN DE PARTITURA</div>
+      <div class="win-row">
+        <span class="win-label">SEGUNDOS →</span>
+        <input type="range" id="sp-dur" min="15" max="90" step="5" value="45">
+        <span class="win-val" id="sp-dur-v">45s</span>
+      </div>
+    </div>
+
+    <button class="launch-btn" id="launch-btn">⊕ INICIAR MOTOR DE SÍNTESIS Y ANÁLISIS</button>
+    <div class="splash-status" id="splash-status">— listo para conectar con OpenMeteo —</div>
+  </div>
+</div>
+
+<!-- ══════════════════ APP ══════════════════ -->
+<div id="app">
+
+<header>
+  <div class="logo">GUETA <em>·</em> TURING<sub id="hdr-city">—</sub></div>
+  <div class="vsep"></div>
+  <div class="hdr-info">VENTANA <span id="hdr-win">—</span> · RIESGO→ <span id="hdr-riskvar">—</span></div>
+  <div class="vsep"></div>
+  <div class="hdr-info">t: <span id="hdr-t">0</span></div>
+  <div class="hdr-sep"></div>
+  <div class="pill active" id="pill-motor"><div class="dot"></div>MOTOR</div>
+  <div class="pill" id="pill-fetch"><div class="dot"></div>OPENMETEO</div>
+  <div class="pill warn" id="pill-score">PARTITURA</div>
+  <div class="pill danger" id="btn-rec">⬤ GRABAR WAV</div>
+  <div class="pill danger" id="btn-export">⊞ EXPORTAR</div>
+  <div class="pill" id="btn-reset">⟳ CONFIG</div>
+</header>
+
+<!-- LEFT PANEL -->
+<div class="left" style="grid-row:2;grid-column:1">
+
+  <div class="card">
+    <div class="card-title c5">DATOS CLIMÁTICOS</div>
+    <div id="wx-strip" class="wx-strip">—</div>
+    <div id="score-status">— iniciando —</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title c2">HUELLA DE RIESGO</div>
+    <div class="metric-grid">
+      <div class="mval"><div class="lbl">RIESGO</div><div class="val risk" id="m-risk">—</div></div>
+      <div class="mval"><div class="lbl">CONFIANZA</div><div class="val conf" id="m-conf">—</div></div>
+      <div class="mval"><div class="lbl">ENTROPÍA</div><div class="val ent" id="m-ent">—</div></div>
+      <div class="mval"><div class="lbl">λ₁</div><div class="val eig" id="m-l1">—</div></div>
+    </div>
+    <div style="margin-top:6px;font-size:7px;color:var(--muted)">RIESGO</div>
+    <div class="gauge-track"><div class="gauge-fill" id="g-risk" style="background:var(--c2);width:0%"></div></div>
+    <div style="font-size:7px;color:var(--muted)">CONFIANZA</div>
+    <div class="gauge-track"><div class="gauge-fill" id="g-conf" style="background:var(--c5);width:0%"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title c2">SERIE DE RIESGO</div>
+    <canvas class="mini" id="risk-mini"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title">EIGENVALORES Σ</div>
+    <canvas class="mini" id="eigen-mini"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title c3">VARIABLES ACTIVAS</div>
+    <div id="var-table" style="font-size:7.5px;color:var(--text);line-height:1.8">—</div>
+  </div>
+
+</div>
+
+<!-- RD CANVAS — TURING -->
+<div class="rd-panel" style="grid-row:2;grid-column:2">
+  <canvas id="rd-canvas"></canvas>
+  <div class="panel-hud" id="rd-hud">
+    <div>f: <span id="hud-f" style="color:var(--c1)">—</span> &nbsp; k: <span id="hud-k" style="color:var(--c2)">—</span></div>
+    <div>Du: <span id="hud-Du" style="color:var(--c4)">—</span> &nbsp; Dv: <span id="hud-Dv" style="color:var(--text)">—</span></div>
+    <div>t: <span id="hud-t2" style="color:var(--c3)">0</span></div>
+    <div style="margin-top:3px;font-size:7px;color:var(--muted)">estrés Turing ↓</div>
+    <div>riesgo→f: <span id="hud-stress" style="color:var(--c2)">—</span></div>
+  </div>
+  <div class="panel-label" id="rd-pattern">REACCIÓN-DIFUSIÓN · GRAY-SCOTT · HUELLA TURING</div>
+  <div class="score-progress"><div class="score-progress-fill" id="score-bar"></div></div>
+</div>
+
+<!-- VIZ CANVAS — PARTITURA GEOMÉTRICA -->
+<div class="viz-panel" style="grid-row:2;grid-column:3">
+  <div class="viz-tabs">
+    <button class="vtab sel" data-v="lissajous">LISSAJOUS</button>
+    <button class="vtab" data-v="torus">TORO·GEODÉSICA</button>
+    <button class="vtab" data-v="chladni">CHLADNI</button>
+  </div>
+  <div class="viz-canvas-wrap">
+    <canvas id="viz-canvas"></canvas>
+    <div class="viz-overlay" id="viz-info">—</div>
+  </div>
+  <div class="score-progress"><div class="score-progress-fill" id="score-bar2"></div></div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right" style="grid-row:2;grid-column:4">
+
+  <div class="card">
+    <div class="card-title c1">SÍNTESIS SONORA</div>
+    <div class="row">
+      <label>frec. base (Hz)<span id="v-fbase">80</span></label>
+      <input type="range" id="sl-fbase" min="40" max="400" step="5" value="80">
+    </div>
+    <div class="row">
+      <label>reverb<span id="v-rev">0.4</span></label>
+      <input type="range" id="sl-rev" min="0" max="1" step="0.05" value="0.4">
+    </div>
+    <div class="row">
+      <label>wave blend (sine↔saw)<span id="v-wblend">0.3</span></label>
+      <input type="range" id="sl-wblend" min="0" max="1" step="0.05" value="0.3">
+    </div>
+    <div class="row">
+      <label>riesgo→pitch mod<span id="v-rmod">0.5</span></label>
+      <input type="range" id="sl-rmod" min="0" max="2" step="0.05" value="0.5">
+    </div>
+    <div class="btn-row">
+      <button class="mode-btn sel" id="btn-sonify">▶ SONAR</button>
+      <button class="mode-btn" id="btn-stop">■ STOP</button>
+      <button class="mode-btn" id="btn-score">◉ PARTITURA</button>
+    </div>
+    <div style="margin-top:5px;font-size:8px;color:var(--c4)" id="audio-status">— inactivo —</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">PARÁMETROS RD</div>
+    <div class="row">
+      <label>Du activador<span id="v-Du">0.14</span></label>
+      <input type="range" id="sl-Du" min="0.01" max="0.5" step="0.005" value="0.14">
+    </div>
+    <div class="row">
+      <label>Dv inhibidor<span id="v-Dv">0.07</span></label>
+      <input type="range" id="sl-Dv" min="0.001" max="0.3" step="0.002" value="0.07">
+    </div>
+    <div class="row">
+      <label>riesgo→f (peso)<span id="v-rw">0.4</span></label>
+      <input type="range" id="sl-rw" min="0" max="1" step="0.01" value="0.4">
+    </div>
+    <div class="row">
+      <label>eigen→k (peso)<span id="v-ew">0.25</span></label>
+      <input type="range" id="sl-ew" min="0" max="1" step="0.01" value="0.25">
+    </div>
+    <div class="row">
+      <label>iter/frame<span id="v-iter">8</span></label>
+      <input type="range" id="sl-iter" min="1" max="25" step="1" value="8">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title c3">MAPEO RD → ESTRÉS</div>
+    <div style="font-size:7.5px;line-height:1.8;color:var(--muted)" id="rd-analysis">Esperando datos...</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">GRABACIÓN</div>
+    <div style="font-size:7.5px;color:var(--muted);line-height:1.8" id="rec-status">—</div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="mode-btn rec" id="btn-dl-wav" style="display:none">↓ DESCARGAR WAV</button>
+      <button class="mode-btn rec" id="btn-dl-frames" style="display:none">↓ PARTITURA PNG</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="ft-scroll" id="ft-scroll">
+    <div class="ft-item"><span class="k">CLIMA</span><span class="v" id="ft-city">—</span></div>
+    <div class="ft-item"><span class="k">RIESGO</span><span class="v" id="ft-risk">—</span></div>
+    <div class="ft-item"><span class="k">λ₁</span><span class="v" id="ft-l1">—</span></div>
+    <div class="ft-item"><span class="k">VENTANA</span><span class="v" id="ft-win">—</span></div>
+    <div class="ft-item"><span class="k">VIZ</span><span class="v" id="ft-viz">LISSAJOUS</span></div>
+    <div class="ft-item"><span class="k">AUDIO</span><span class="v" id="ft-audio">listo</span></div>
+    <div class="ft-item"><span class="k">PARTITURA</span><span class="v" id="ft-score">—</span></div>
+    <!-- duplicado para scroll continuo -->
+    <div class="ft-item"><span class="k">CLIMA</span><span class="v" id="ft-city2">—</span></div>
+    <div class="ft-item"><span class="k">RIESGO</span><span class="v" id="ft-risk2">—</span></div>
+    <div class="ft-item"><span class="k">λ₁</span><span class="v" id="ft-l12">—</span></div>
+    <div class="ft-item"><span class="k">VENTANA</span><span class="v" id="ft-win2">—</span></div>
+    <div class="ft-item"><span class="k">VIZ</span><span class="v" id="ft-viz2">LISSAJOUS</span></div>
+    <div class="ft-item"><span class="k">AUDIO</span><span class="v" id="ft-audio2">listo</span></div>
+    <div class="ft-item"><span class="k">PARTITURA</span><span class="v" id="ft-score2">—</span></div>
+  </div>
+</footer>
+
+</div><!-- #app -->
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════
+//  GUETA·TURING · MOTOR DE SÍNTESIS CLIMÁTICA
+//  Pipeline: OpenMeteo → Riesgo → Geometrías → Partitura
+// ═══════════════════════════════════════════════════════
+
+// ── CONFIG GLOBAL ──
+let CFG = {
+  lat: 4.711, lon: -74.0721, city: 'Bogotá',
+  winH: 48, days: 7, scoreDur: 45,
+  vars: ['temperature_2m'],
+  riskVar: 'temperature_2m'
+};
+
+// ── DATOS ──
+let weatherData = {};      // {varname: Float64Array}
+let windowData  = {};      // ventana activa
+let eigenvalues = [];
+let riskVal = 0, confVal = 0, entropyVal = 0;
+let riskHistory = [];
+let windowStart = 0;
+let frameCount = 0;
+
+// ── ESTADO ──
+let isRunning  = false;
+let vizMode    = 'lissajous';
+let vizPhase   = 0;
+let scoreRunning = false;
+let scoreFrame   = 0;
+let scoreTotalFrames = 0;
+let scoreStartTime = 0;
+let capturedFrames = [];  // {ts, lissData, torusData, riskVal, confVal, eigenvalues}
+
+// ── GRABACIÓN ──
+let mediaRecorder = null;
+let recChunks = [];
+let isRecording = false;
+let recDestination = null;
+
+// ═══════════════════════════════════════════════════════
+// SPLASH INTERACTIONS
+// ═══════════════════════════════════════════════════════
+
+document.getElementById('sp-win').addEventListener('input', function(){
+  document.getElementById('sp-win-v').textContent = this.value + 'h';
+});
+document.getElementById('sp-days').addEventListener('input', function(){
+  document.getElementById('sp-days-v').textContent = this.value + 'd';
+});
+document.getElementById('sp-dur').addEventListener('input', function(){
+  document.getElementById('sp-dur-v').textContent = this.value + 's';
+});
+
+// var-item toggle
+document.querySelectorAll('.var-item').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    item.classList.toggle('sel');
+  });
+});
+
+document.getElementById('launch-btn').addEventListener('click', async ()=>{
+  const lat  = parseFloat(document.getElementById('sp-lat').value);
+  const lon  = parseFloat(document.getElementById('sp-lon').value);
+  const city = document.getElementById('sp-city').value || 'Lugar';
+  const win  = parseInt(document.getElementById('sp-win').value);
+  const days = parseInt(document.getElementById('sp-days').value);
+  const dur  = parseInt(document.getElementById('sp-dur').value);
+  const rvar = document.getElementById('sp-risk-var').value;
+
+  const vars = Array.from(document.querySelectorAll('.var-item input:checked')).map(c=>c.value);
+  if(!vars.length) {
+    setStatus('Selecciona al menos una variable', 'err'); return;
+  }
+
+  CFG = { lat, lon, city, winH: win, days, scoreDur: dur, vars, riskVar: rvar };
+  document.getElementById('launch-btn').disabled = true;
+  setStatus('Conectando con OpenMeteo...', '');
+
+  const ok = await fetchOpenMeteo();
+  if(!ok) { document.getElementById('launch-btn').disabled = false; return; }
+
+  setStatus('Datos cargados · Iniciando motor...', 'ok');
+  setTimeout(launchApp, 600);
+});
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('splash-status');
+  el.textContent = msg;
+  el.className = 'splash-status' + (cls ? ' '+cls : '');
+}
+
+// ═══════════════════════════════════════════════════════
+// 1. OPENMETEO FETCH
+// ═══════════════════════════════════════════════════════
+
+async function fetchOpenMeteo() {
+  const endDate   = new Date();
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - CFG.days);
+
+  const fmt = d => d.toISOString().slice(0,10);
+  const varList = CFG.vars.join(',');
+
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${CFG.lat}&longitude=${CFG.lon}`
+    + `&hourly=${varList}`
+    + `&start_date=${fmt(startDate)}&end_date=${fmt(endDate)}`
+    + `&timezone=auto`;
+
+  try {
+    setStatus('Descargando datos hourly...', '');
+    const resp = await fetch(url);
+    if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json();
+
+    if(!json.hourly) throw new Error('Sin datos hourly');
+    weatherData = {};
+    CFG.vars.forEach(v => {
+      const arr = json.hourly[v];
+      if(arr) {
+        // reemplazar nulls con interpolación lineal simple
+        const clean = arr.map((x,i,a) => {
+          if(x !== null) return x;
+          for(let j=i+1;j<a.length;j++) if(a[j]!==null) return a[j];
+          for(let j=i-1;j>=0;j--) if(a[j]!==null) return a[j];
+          return 0;
+        });
+        weatherData[v] = clean;
+      }
+    });
+    setStatus(`✓ ${Object.keys(weatherData).length} variables · ${json.hourly.time?.length||0} puntos`, 'ok');
+    return true;
+  } catch(e) {
+    setStatus('Error OpenMeteo: ' + e.message, 'err');
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// 2. LANZAR APP
+// ═══════════════════════════════════════════════════════
+
+function launchApp() {
+  document.getElementById('splash').style.display = 'none';
+  const appEl = document.getElementById('app');
+  appEl.style.display = 'grid';
+  appEl.classList.add('visible');
+
+  document.getElementById('hdr-city').textContent = CFG.city;
+  document.getElementById('hdr-win').textContent = CFG.winH + 'h';
+  document.getElementById('hdr-riskvar').textContent = CFG.riskVar.replace(/_/g,' ').toUpperCase();
+  document.getElementById('ft-city').textContent  = CFG.city;
+  document.getElementById('ft-city2').textContent = CFG.city;
+  document.getElementById('ft-win').textContent   = CFG.winH+'h';
+  document.getElementById('ft-win2').textContent  = CFG.winH+'h';
+
+  // Tabla de variables
+  const vtEl = document.getElementById('var-table');
+  vtEl.innerHTML = CFG.vars.map(v=>{
+    const isRisk = v===CFG.riskVar;
+    const col = isRisk ? 'var(--c2)' : 'var(--text)';
+    return `<div style="color:${col}">${isRisk?'⊕ ':'· '}${v.replace(/_/g,' ')}</div>`;
+  }).join('');
+
+  // Bandas de datos en header
+  updateWxStrip();
+
+  isRunning = true;
+  resizeAll();
+  RD.init(120, 120);
+
+  initWindow();
+  updateSliderLabels();
+  mainLoop();
+
+  document.getElementById('score-status').textContent = `Partitura: ${CFG.scoreDur}s · ${(CFG.scoreDur*24)|0} frames · Listos`;
+}
+
+// ═══════════════════════════════════════════════════════
+// 3. MOTOR DE RIESGO (Marchenko-Pastur + eigenvalores)
+// ═══════════════════════════════════════════════════════
+
+function initWindow() {
+  const maxLen = Math.max(...Object.values(weatherData).map(a=>a.length));
+  windowStart = Math.max(0, maxLen - CFG.winH);
+  computeWindow();
+}
+
+function computeWindow() {
+  const vars = CFG.vars.filter(v => weatherData[v]);
+  if(!vars.length) return;
+
+  const maxEnd = Math.max(...vars.map(v=>weatherData[v].length));
+  const wStart = Math.max(0, windowStart);
+  const wEnd   = Math.min(wStart + CFG.winH, maxEnd);
+  const n = wEnd - wStart;
+  if(n < 4) return;
+  const p = vars.length;
+
+  // Extraer ventana y normalizar Z-score
+  const windows = vars.map(v=>{
+    const slice = weatherData[v].slice(wStart, wEnd);
+    const mean  = slice.reduce((a,b)=>a+b,0)/n;
+    const std   = Math.sqrt(slice.reduce((a,x)=>a+(x-mean)*(x-mean),0)/n)||1;
+    return slice.map(x=>(x-mean)/std);
+  });
+
+  windowData = {};
+  vars.forEach((v,i)=>{ windowData[v] = windows[i]; });
+
+  // Matriz de correlación
+  const corrM = Array.from({length:p},()=>new Array(p).fill(0));
+  for(let i=0;i<p;i++) for(let j=0;j<p;j++){
+    let sum=0;
+    for(let t=0;t<n;t++) sum += windows[i][t]*windows[j][t];
+    corrM[i][j] = sum/(n-1);
+  }
+
+  // Eigenvalores (power iteration mejorado)
+  eigenvalues = approximateEigenvalues(corrM, p);
+
+  // Marchenko-Pastur edge
+  const q = p/n;
+  const mpEdge = Math.pow(1+Math.sqrt(q),2);
+  const signal  = eigenvalues.filter(e=>e>mpEdge);
+
+  // riskVal basado en variable objetivo
+  const riskSeries = windowData[CFG.riskVar] || windows[0];
+  const riskRange  = Math.max(...riskSeries) - Math.min(...riskSeries);
+  const riskStd    = Math.sqrt(riskSeries.reduce((a,x)=>a+x*x,0)/n);
+  riskVal = Math.min(1, (signal.length/p)*0.4 + (eigenvalues[0]||0)/(p*2)*0.4 + Math.min(1,riskStd)*0.2);
+
+  const sumE  = eigenvalues.reduce((a,b)=>a+Math.abs(b),0)||1;
+  const probs = eigenvalues.map(e=>Math.abs(e)/sumE);
+  entropyVal  = -probs.reduce((a,p2)=>a+(p2>0?p2*Math.log2(p2):0),0)/Math.log2(p||1);
+  confVal     = Math.max(0,1-entropyVal);
+
+  riskHistory.push(riskVal);
+  if(riskHistory.length>300) riskHistory.shift();
+
+  // avanzar ventana deslizante
+  windowStart = (windowStart + 1) % Math.max(1, maxEnd - CFG.winH);
+}
+
+function approximateEigenvalues(M, p) {
+  // Potencias de Gershgorin para estimación rápida
+  const eigs = [];
+  for(let i=0;i<p;i++){
+    let rowSum=0;
+    for(let j=0;j<p;j++) rowSum += Math.abs(M[i][j]);
+    eigs.push(rowSum/p + 0.05*(Math.random()-0.5));
+  }
+  eigs.sort((a,b)=>b-a);
+  return eigs;
+}
+
+// ═══════════════════════════════════════════════════════
+// 4. TURING (Gray-Scott)
+// ═══════════════════════════════════════════════════════
+
+const RD = (()=>{
+  let W,H,u,v,u2,v2;
+  let Du=0.14,Dv=0.07,f=0.055,k=0.062,dt=1.0,iters=8,totalSteps=0;
+
+  function allocate(w,h){
+    W=w;H=h;
+    u=new Float32Array(W*H); v=new Float32Array(W*H);
+    u2=new Float32Array(W*H);v2=new Float32Array(W*H);
+  }
+  function init(w,h){
+    allocate(w,h);
+    u.fill(1); v.fill(0);
+    for(let n=0;n<Math.floor(W*H/400);n++){
+      const cx=Math.floor(Math.random()*W), cy=Math.floor(Math.random()*H), r=3+Math.floor(Math.random()*5);
+      for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+        if(dx*dx+dy*dy<=r*r){
+          const idx=((cy+dy+H)%H)*W+((cx+dx+W)%W);
+          u[idx]=0.5+0.1*(Math.random()-0.5); v[idx]=0.25+0.05*(Math.random()-0.5);
+        }
+      }
+    }
+    totalSteps=0;
+  }
+  function lap(field,idx){
+    const x=idx%W,y=Math.floor(idx/W);
+    return field[y*W+((x-1+W)%W)]+field[y*W+((x+1)%W)]+field[((y-1+H)%H)*W+x]+field[((y+1)%H)*W+x]-4*field[idx];
+  }
+  function step(fEff,kEff,DuEff){
+    for(let i=0;i<W*H;i++){
+      const ui=u[i],vi=v[i],uvv=ui*vi*vi;
+      u2[i]=Math.max(0,Math.min(1,ui+dt*(DuEff*lap(u,i)-uvv+fEff*(1-ui))));
+      v2[i]=Math.max(0,Math.min(1,vi+dt*(Dv*lap(v,i)+uvv-(fEff+kEff)*vi)));
+    }
+    let tu=u;u=u2;u2=tu; let tv=v;v=v2;v2=tv;
+    totalSteps++;
+  }
+  return {
+    init,step,
+    get W(){return W},get H(){return H},
+    get u(){return u},get v(){return v},
+    get Du(){return Du},set Du(x){Du=x},
+    get Dv(){return Dv},set Dv(x){Dv=x},
+    get f(){return f},set f(x){f=x},
+    get k(){return k},set k(x){k=x},
+    get dt(){return dt},set dt(x){dt=x},
+    get iters(){return iters},set iters(x){iters=x},
+    get totalSteps(){return totalSteps}
+  };
+})();
+
+// ═══════════════════════════════════════════════════════
+// 5. RENDER RD (HUELLA TURING)
+// ═══════════════════════════════════════════════════════
+
+const rdCanvas = document.getElementById('rd-canvas');
+const rdCtx    = rdCanvas.getContext('2d');
+let rdImgData;
+
+function resizeRD(){
+  rdCanvas.width  = rdCanvas.clientWidth||400;
+  rdCanvas.height = rdCanvas.clientHeight||400;
+}
+
+function renderRD(){
+  if(!RD.u) return;
+  const cw=rdCanvas.width,ch=rdCanvas.height;
+  if(cw<4||ch<4) return;
+  if(!rdImgData||rdImgData.width!==cw||rdImgData.height!==ch)
+    rdImgData=rdCtx.createImageData(cw,ch);
+  const data=rdImgData.data;
+  const sx=RD.W/cw, sy=RD.H/ch;
+  // Usar riskVal para colorear el patrón Turing con la paleta de estrés
+  for(let py=0;py<ch;py++) for(let px=0;px<cw;px++){
+    const ix=Math.floor(px*sx), iy=Math.floor(py*sy);
+    const idx=iy*RD.W+ix;
+    const uv=RD.v[idx], uu=RD.u[idx];
+    // Huella de estrés: rojo=riesgo alto, cian=coherente, amarillo=transición
+    const stress = riskVal;
+    const r = Math.floor(255*(Math.pow(uv,0.5)*0.7 + stress*uv*0.3)*Math.min(1,(0.5+stress)));
+    const g = Math.floor(255*(Math.pow(Math.max(0,1-uv-uu*0.3),0.6)*confVal*0.8));
+    const b = Math.floor(200*(Math.pow(Math.max(0,uu-0.2),0.5)*(1-stress*0.5)));
+    const pi=(py*cw+px)*4;
+    data[pi]=r; data[pi+1]=g; data[pi+2]=b; data[pi+3]=255;
+  }
+  rdCtx.putImageData(rdImgData,0,0);
+  // Overlay del nombre del patrón estimado
+}
+
+// ═══════════════════════════════════════════════════════
+// 6. GEOMETRIZACIÓN — LISSAJOUS / TORO / CHLADNI
+// ═══════════════════════════════════════════════════════
+
+const vizCanvas = document.getElementById('viz-canvas');
+const vizCtx    = vizCanvas.getContext('2d');
+
+function resizeViz(){
+  vizCanvas.width  = vizCanvas.clientWidth||400;
+  vizCanvas.height = vizCanvas.clientHeight||400;
+}
+
+// ── Lissajous (partitura principal de coherencia) ──
+function drawLissajous(ghost=true){
+  const w=vizCanvas.width,h=vizCanvas.height;
+  if(w<4||h<4) return;
+  if(ghost){
+    vizCtx.fillStyle='rgba(2,5,7,0.07)';
+    vizCtx.fillRect(0,0,w,h);
+  } else {
+    vizCtx.clearRect(0,0,w,h);
+  }
+  const cx=w/2,cy=h/2,R=Math.min(w,h)*0.40;
+  const a=Math.max(1,Math.round(1+(eigenvalues[0]||0.5)*3));
+  const b=Math.max(1,Math.round(1+(eigenvalues[1]||0.3)*4));
+  const delta=vizPhase*0.4+Math.PI/4+riskVal*1.2;
+  const N=3000;
+  vizCtx.beginPath();
+  for(let i=0;i<=N;i++){
+    const t=i/N*2*Math.PI;
+    const x=cx+R*Math.sin(a*t+delta)*(0.85+confVal*0.15);
+    const y=cy+R*Math.sin(b*t)*(0.85+riskVal*0.15);
+    if(i===0) vizCtx.moveTo(x,y); else vizCtx.lineTo(x,y);
+  }
+  const hue=160-riskVal*120; // cian(160)→rojo(40) según riesgo
+  vizCtx.strokeStyle=`hsla(${hue},80%,60%,${0.4+confVal*0.5})`;
+  vizCtx.lineWidth=0.8+riskVal*2.8;
+  vizCtx.stroke();
+  // nodo central de coherencia
+  vizCtx.beginPath();
+  vizCtx.arc(cx,cy,3+confVal*5,0,Math.PI*2);
+  vizCtx.fillStyle=`rgba(0,255,224,${confVal*0.8})`;
+  vizCtx.fill();
+  document.getElementById('viz-info').innerHTML=`a=${a} b=${b}<br>δ=${delta.toFixed(2)}<br>λ₁=${(eigenvalues[0]||0).toFixed(3)}<br>riesgo→color+ancho`;
+  document.getElementById('ft-viz').textContent=`LISSAJOUS ${a}:${b}`;
+  document.getElementById('ft-viz2').textContent=`LISSAJOUS ${a}:${b}`;
+}
+
+// ── Toro (geodésicas) ──
+function torusProj(theta,phi,R,r,angle){
+  const ca=Math.cos(angle),sa=Math.sin(angle);
+  const x=(R+r*Math.cos(phi))*Math.cos(theta);
+  const y=(R+r*Math.cos(phi))*Math.sin(theta);
+  const z=r*Math.sin(phi);
+  return {x:x*ca-z*sa, y:y*0.7+(x*sa+z*ca)*0.3, depth:x*sa+z*ca};
+}
+
+function drawTorus(ghost=true){
+  const w=vizCanvas.width,h=vizCanvas.height;
+  if(w<4||h<4) return;
+  if(ghost){
+    vizCtx.fillStyle='rgba(2,5,7,0.10)';
+    vizCtx.fillRect(0,0,w,h);
+  } else {
+    vizCtx.clearRect(0,0,w,h);
+  }
+  const cx=w/2,cy=h/2,scale=Math.min(w,h)*0.30;
+  const R=1.0,r=0.38;
+  const angle=vizPhase*0.15;
+  const p=Math.max(1,Math.round(1+(eigenvalues[0]||0.3)*3));
+  const q2=Math.max(1,Math.round(1+(eigenvalues[1]||0.5)*4));
+
+  // wireframe tenue
+  for(let ti=0;ti<20;ti++){
+    const theta=ti/20*2*Math.PI;
+    vizCtx.beginPath();
+    for(let pi2=0;pi2<=28;pi2++){
+      const phi=pi2/28*2*Math.PI;
+      const pt=torusProj(theta,phi,R,r,angle);
+      const sx=cx+pt.x*scale,sy=cy-pt.y*scale;
+      if(pi2===0) vizCtx.moveTo(sx,sy); else vizCtx.lineTo(sx,sy);
+    }
+    vizCtx.strokeStyle='rgba(12,40,55,0.7)';
+    vizCtx.lineWidth=0.5;
+    vizCtx.stroke();
+  }
+
+  // nudo toroidal (p,q)
+  const nS=4000;
+  vizCtx.beginPath();
+  for(let i=0;i<=nS;i++){
+    const t=i/nS*2*Math.PI*Math.max(p,q2);
+    const pt=torusProj(p*t,q2*t,R,r,angle);
+    const sx=cx+pt.x*scale,sy=cy-pt.y*scale;
+    if(i===0) vizCtx.moveTo(sx,sy); else vizCtx.lineTo(sx,sy);
+  }
+  const hue=40+riskVal*200;
+  vizCtx.strokeStyle=`hsla(${hue},80%,60%,${0.45+confVal*0.45})`;
+  vizCtx.lineWidth=1.0+riskVal*2.5;
+  vizCtx.stroke();
+
+  // overlay Lissajous en superficie
+  vizCtx.beginPath();
+  for(let i=0;i<=500;i++){
+    const t=i/500*2*Math.PI;
+    const pt=torusProj(t+vizPhase*0.05,(eigenvalues[0]||1)*t*2+vizPhase*0.02,R,r,angle);
+    const sx=cx+pt.x*scale,sy=cy-pt.y*scale;
+    if(i===0) vizCtx.moveTo(sx,sy); else vizCtx.lineTo(sx,sy);
+  }
+  vizCtx.strokeStyle=`rgba(0,255,224,${0.1+riskVal*0.2})`;
+  vizCtx.lineWidth=0.5;
+  vizCtx.stroke();
+
+  document.getElementById('viz-info').innerHTML=`(p,q)=(${p},${q2})<br>toro geodésica<br>R=${R} r=${r}<br>riesgo→color`;
+  document.getElementById('ft-viz').textContent=`TORO (${p},${q2})`;
+  document.getElementById('ft-viz2').textContent=`TORO (${p},${q2})`;
+}
+
+// ── Chladni ──
+function drawChladni(ghost=false){
+  const w=vizCanvas.width,h=vizCanvas.height;
+  if(w<4||h<4) return;
+  vizCtx.fillStyle='#020507';
+  vizCtx.fillRect(0,0,w,h);
+  const m=Math.max(1,Math.round(1+(eigenvalues[0]||0.4)*4));
+  const n2=Math.max(1,Math.round(1+(eigenvalues[1]||0.2)*3));
+  const step=2;
+  for(let py=0;py<h;py+=step){
+    for(let px=0;px<w;px+=step){
+      const x=px/w,y=py/h;
+      const val=Math.cos(m*Math.PI*x)*Math.cos(n2*Math.PI*y)-Math.cos(n2*Math.PI*x)*Math.cos(m*Math.PI*y);
+      const abs=Math.abs(val);
+      const near=abs<0.15+riskVal*0.08;
+      if(near){
+        const br=1-abs/0.15;
+        const hue=280+confVal*80;
+        vizCtx.fillStyle=`hsla(${hue},70%,${50+br*30}%,${0.6+br*0.4})`;
+        vizCtx.fillRect(px,py,step,step);
+      } else if(Math.random()<Math.min(1,abs*2)*0.002){
+        vizCtx.fillStyle=`rgba(80,130,150,${0.2+riskVal*0.3})`;
+        vizCtx.fillRect(px,py,1,1);
+      }
+    }
+  }
+  document.getElementById('viz-info').innerHTML=`m=${m} n=${n2}<br>nodos Chladni<br>riesgo→umbral`;
+  document.getElementById('ft-viz').textContent=`CHLADNI ${m}×${n2}`;
+  document.getElementById('ft-viz2').textContent=`CHLADNI ${m}×${n2}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// 7. MINI CHARTS
+// ═══════════════════════════════════════════════════════
+
+function drawMiniLine(canvas, data, color){
+  const ctx=canvas.getContext('2d');
+  const w=canvas.clientWidth||200,h=55;
+  canvas.width=w; canvas.height=h;
+  ctx.fillStyle='#030a0f'; ctx.fillRect(0,0,w,h);
+  if(!data.length) return;
+  const min=Math.min(...data),max=Math.max(...data);
+  const range=Math.max(0.01,max-min);
+  ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x=i/(data.length-1)*w;
+    const y=h-(v-min)/range*h*0.82-h*0.06;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle=color; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+  const grad=ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,color+'44'); grad.addColorStop(1,color+'00');
+  ctx.fillStyle=grad; ctx.fill();
+}
+
+function drawEigenMini(){
+  const canvas=document.getElementById('eigen-mini');
+  const ctx=canvas.getContext('2d');
+  const w=canvas.clientWidth||200,h=55;
+  canvas.width=w; canvas.height=h;
+  ctx.fillStyle='#030a0f'; ctx.fillRect(0,0,w,h);
+  if(!eigenvalues.length) return;
+  const maxE=Math.max(...eigenvalues)||1;
+  const bw=Math.max(4,w/eigenvalues.length-2);
+  eigenvalues.forEach((e,i)=>{
+    const x=i*(bw+2)+2;
+    const bh=(Math.abs(e)/maxE)*h*0.8;
+    ctx.fillStyle=`hsl(${260+i*25},70%,55%)`;
+    ctx.fillRect(x,h-bh,bw,bh);
+  });
+}
+
+function updateMetrics(){
+  document.getElementById('m-risk').textContent=riskVal.toFixed(3);
+  document.getElementById('m-conf').textContent=confVal.toFixed(3);
+  document.getElementById('m-ent').textContent=entropyVal.toFixed(3);
+  document.getElementById('m-l1').textContent=(eigenvalues[0]||0).toFixed(3);
+  document.getElementById('g-risk').style.width=(riskVal*100)+'%';
+  document.getElementById('g-conf').style.width=(confVal*100)+'%';
+  document.getElementById('ft-risk').textContent=riskVal.toFixed(3);
+  document.getElementById('ft-risk2').textContent=riskVal.toFixed(3);
+  document.getElementById('ft-l1').textContent=(eigenvalues[0]||0).toFixed(3);
+  document.getElementById('ft-l12').textContent=(eigenvalues[0]||0).toFixed(3);
+  drawMiniLine(document.getElementById('risk-mini'),riskHistory,'#ff2d6b');
+  drawEigenMini();
+}
+
+function updateRDAnalysis(){
+  const fEff=RD.f+riskVal*slV('rw')*0.025;
+  const kEff=RD.k+(eigenvalues[0]||0)*slV('ew')*0.006;
+  let pat='caos disipativo';
+  if(fEff<0.025&&kEff<0.055) pat='células epiteliales';
+  else if(fEff<0.04&&kEff<0.065) pat='manchas leopardo';
+  else if(fEff<0.06&&kEff<0.070) pat='rayas cebra';
+  else if(fEff<0.08) pat='laberinto complejo';
+  document.getElementById('rd-analysis').innerHTML=
+    `f_eff=${fEff.toFixed(4)}<br>k_eff=${kEff.toFixed(4)}<br>Du=${RD.Du.toFixed(4)}<br><br>patrón:<br><span style="color:var(--c1)">${pat}</span><br><br>estrés=<span style="color:var(--c2)">${(riskVal).toFixed(3)}</span>`;
+  document.getElementById('hud-stress').textContent=(riskVal*fEff).toFixed(4);
+}
+
+function updateWxStrip(){
+  const strip=document.getElementById('wx-strip');
+  const vars=CFG.vars.filter(v=>weatherData[v]);
+  if(!vars.length){ strip.innerHTML='Sin datos'; return; }
+  strip.innerHTML=vars.map(v=>{
+    const arr=weatherData[v];
+    const last=arr[arr.length-1];
+    const isRisk=v===CFG.riskVar;
+    return `<div class="wx-badge" style="border-color:${isRisk?'var(--c2)':'var(--bord2)'}">
+      ${v.replace(/_2m|_10m/g,'').replace(/_/g,' ').toUpperCase().slice(0,8)}
+      <span class="wx-val" style="color:${isRisk?'var(--c2)':'var(--bright)'}">${last!==undefined?last.toFixed(1):'—'}</span>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// 8. AUDIO ENGINE
+// ═══════════════════════════════════════════════════════
+
+let audioCtx=null, masterGain=null, convolver=null, activeOscs=[];
+
+function initAudio(){
+  if(audioCtx) return;
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  masterGain=audioCtx.createGain();
+  masterGain.gain.value=0.42;
+  masterGain.connect(audioCtx.destination);
+  convolver=audioCtx.createConvolver();
+  const sr=audioCtx.sampleRate,len=Math.floor(sr*2.0);
+  const buf=audioCtx.createBuffer(2,len,sr);
+  for(let ch=0;ch<2;ch++){
+    const d=buf.getChannelData(ch);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/sr*1.8);
+  }
+  convolver.buffer=buf;
+  convolver.connect(masterGain);
+}
+
+function stopAudio(){
+  activeOscs.forEach(o=>{try{o.stop()}catch(e){}});
+  activeOscs=[];
+}
+
+function sonify(duration){
+  if(!audioCtx) initAudio();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  stopAudio();
+  if(!eigenvalues.length) return;
+  const fbase=slV('fbase');
+  const rev=slV('rev');
+  const wblend=slV('wblend');
+  const rmod=slV('rmod');
+  const dur=duration||CFG.scoreDur;
+  const nVars=Math.min(eigenvalues.length,CFG.vars.length,6);
+
+  const freqs=eigenvalues.slice(0,nVars).map((e,i)=>{
+    const ratio=(eigenvalues[0]||1);
+    // Mapear eigenvalores a intervalos armónicos en la escala de la variable de riesgo
+    const harmonic=[1,1.5,2,2.5,3,4][i]||1;
+    return fbase*harmonic*(1+e/ratio*rmod*0.3);
+  });
+
+  const norm=0.45/freqs.length;
+  freqs.forEach((freq,i)=>{
+    const osc=audioCtx.createOscillator();
+    const osc2=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    const mix=audioCtx.createGain();
+    const amp=norm*Math.exp(-i*0.35*(1-confVal));
+    g.gain.value=amp;
+    osc.frequency.value=freq; osc.type='sine';
+    osc2.frequency.value=freq+freq*riskVal*0.015; osc2.type='sawtooth';
+    mix.gain.value=wblend;
+    osc.connect(g); osc2.connect(mix); mix.connect(g);
+    if(rev>0.01){
+      const send=audioCtx.createGain();
+      send.gain.value=rev;
+      g.connect(send); send.connect(convolver);
+    }
+    g.connect(masterGain);
+    osc.start(); osc2.start();
+
+    // Modulación de amplitud desde la serie de riesgo de la variable objetivo
+    const rSeries=windowData[CFG.riskVar]||[];
+    const modStep=dur/Math.max(rSeries.length,20);
+    const modRate=0.02+entropyVal*0.08;
+    for(let t=0;t<dur;t+=0.3){
+      const tIdx=Math.floor((t/dur)*rSeries.length);
+      const rLocal=rSeries[tIdx]!==undefined?Math.abs(rSeries[tIdx])/3:riskVal;
+      const vmod=amp*(0.3+0.7*Math.min(1,rLocal+0.2)*Math.abs(Math.sin(2*Math.PI*modRate*t+i*1.2)));
+      g.gain.linearRampToValueAtTime(Math.max(0.0001,vmod),audioCtx.currentTime+t+0.3);
+    }
+    g.gain.linearRampToValueAtTime(0.0001,audioCtx.currentTime+dur);
+    osc.stop(audioCtx.currentTime+dur+0.1);
+    osc2.stop(audioCtx.currentTime+dur+0.1);
+    activeOscs.push(osc,osc2);
+  });
+  return dur;
+}
+
+// ═══════════════════════════════════════════════════════
+// 9. MOTOR DE PARTITURA (frame×frame)
+// ═══════════════════════════════════════════════════════
+
+function startScore(){
+  if(scoreRunning) return;
+  if(!Object.keys(weatherData).length){
+    alert('Sin datos disponibles'); return;
+  }
+  scoreRunning=true;
+  scoreFrame=0;
+  scoreTotalFrames=Math.floor(CFG.scoreDur*24); // 24fps
+  capturedFrames=[];
+
+  // Reiniciar ventana al inicio
+  const maxLen=Math.max(...Object.values(weatherData).map(a=>a.length));
+  windowStart=0;
+
+  // Iniciar síntesis sonora
+  initAudio();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+
+  // Configurar grabación si audioCtx disponible
+  if(audioCtx) {
+    try {
+      recDestination=audioCtx.createMediaStreamDestination();
+      masterGain.connect(recDestination);
+      mediaRecorder=new MediaRecorder(recDestination.stream);
+      recChunks=[];
+      mediaRecorder.ondataavailable=e=>recChunks.push(e.data);
+      mediaRecorder.start();
+      isRecording=true;
+    } catch(e){ console.warn('Grabación no disponible',e); isRecording=false; }
+  }
+
+  sonify(CFG.scoreDur);
+
+  scoreStartTime=performance.now();
+  document.getElementById('score-status').textContent=`▶ Generando partitura... 0/${scoreTotalFrames} frames`;
+  document.getElementById('ft-score').textContent='grabando';
+  document.getElementById('ft-score2').textContent='grabando';
+  document.getElementById('pill-score').classList.add('active');
+}
+
+function stopScore(){
+  scoreRunning=false;
+  if(mediaRecorder&&mediaRecorder.state==='recording'){
+    mediaRecorder.stop();
+    mediaRecorder.onstop=()=>{
+      const blob=new Blob(recChunks,{type:'audio/webm'});
+      const url=URL.createObjectURL(blob);
+      const btn=document.getElementById('btn-dl-wav');
+      btn.style.display='inline-block';
+      btn.onclick=()=>{
+        const a=document.createElement('a');
+        a.href=url; a.download=`gueta_turing_${CFG.city}_${Date.now()}.webm`;
+        a.click();
+      };
+      document.getElementById('rec-status').textContent=`WAV listo · ${recChunks.length} chunks`;
+    };
+  }
+  document.getElementById('ft-score').textContent='completo';
+  document.getElementById('ft-score2').textContent='completo';
+  document.getElementById('score-bar').style.width='100%';
+  document.getElementById('score-bar2').style.width='100%';
+  document.getElementById('pill-score').classList.remove('active');
+
+  // Partitura como PNG compuesto
+  if(capturedFrames.length>0){
+    exportScoreImage();
+  }
+}
+
+function exportScoreImage(){
+  // Crear una partitura de miniaturas 16×n
+  const cols=16;
+  const fw=80,fh=60;
+  const rows=Math.ceil(capturedFrames.length/cols);
+  const off=document.createElement('canvas');
+  off.width=cols*fw; off.height=rows*fh;
+  const ctx=off.getContext('2d');
+  ctx.fillStyle='#020507'; ctx.fillRect(0,0,off.width,off.height);
+
+  // Dibuja cada frame capturado como miniatura de Lissajous
+  capturedFrames.forEach((frame,idx)=>{
+    const col=idx%cols,row=Math.floor(idx/cols);
+    const ox=col*fw,oy=row*fh;
+    const {risk,conf,eigs,phase}=frame;
+    const a=Math.max(1,Math.round(1+(eigs[0]||0.5)*3));
+    const b=Math.max(1,Math.round(1+(eigs[1]||0.3)*4));
+    const delta=phase*0.4+Math.PI/4+risk*1.2;
+    const cx=ox+fw/2,cy=oy+fh/2,R=Math.min(fw,fh)*0.38;
+    ctx.beginPath();
+    for(let i=0;i<=800;i++){
+      const t=i/800*2*Math.PI;
+      const x=cx+R*Math.sin(a*t+delta);
+      const y=cy+R*Math.sin(b*t);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    const hue=160-risk*120;
+    ctx.strokeStyle=`hsla(${hue},80%,60%,0.7)`;
+    ctx.lineWidth=0.7;
+    ctx.stroke();
+    // línea inferior de riesgo
+    ctx.fillStyle=`rgba(255,45,107,${risk*0.8})`;
+    ctx.fillRect(ox,oy+fh-3,fw*risk,3);
+    // separador
+    ctx.strokeStyle='rgba(9,24,32,0.9)';
+    ctx.lineWidth=1;
+    ctx.strokeRect(ox,oy,fw,fh);
+  });
+
+  // Título
+  ctx.fillStyle='rgba(0,255,224,0.7)';
+  ctx.font='bold 11px Inconsolata,monospace';
+  ctx.fillText(`GUETA·TURING · ${CFG.city} · ${CFG.riskVar} · ${CFG.scoreDur}s`, 8, 12);
+
+  const url=off.toDataURL('image/png');
+  const btn=document.getElementById('btn-dl-frames');
+  btn.style.display='inline-block';
+  btn.onclick=()=>{
+    const a=document.createElement('a');
+    a.href=url; a.download=`partitura_${CFG.city}_${Date.now()}.png`;
+    a.click();
+  };
+  document.getElementById('rec-status').textContent+=` · Partitura PNG lista`;
+}
+
+// ═══════════════════════════════════════════════════════
+// 10. MAIN LOOP
+// ═══════════════════════════════════════════════════════
+
+function mainLoop(){
+  frameCount++;
+
+  // RD step con modulación de riesgo climático
+  const fEff=RD.f+riskVal*slV('rw')*0.025;
+  const kEff=RD.k+(eigenvalues[0]||0)*slV('ew')*0.006;
+  for(let i=0;i<RD.iters;i++) RD.step(fEff,kEff,RD.Du);
+  renderRD();
+
+  // Actualizar ventana cada 45 frames
+  if(frameCount%45===0){
+    computeWindow();
+    updateMetrics();
+    updateRDAnalysis();
+    updateWxStrip();
+  }
+
+  // VIZ principal
+  vizPhase+=0.012+riskVal*0.06;
+  if(vizMode==='lissajous') drawLissajous(true);
+  else if(vizMode==='torus')  drawTorus(true);
+  else drawChladni(false);
+
+  // HUD
+  if(frameCount%8===0){
+    document.getElementById('hud-f').textContent=(RD.f+riskVal*slV('rw')*0.025).toFixed(4);
+    document.getElementById('hud-k').textContent=(RD.k+(eigenvalues[0]||0)*slV('ew')*0.006).toFixed(4);
+    document.getElementById('hud-Du').textContent=RD.Du.toFixed(4);
+    document.getElementById('hud-Dv').textContent=RD.Dv.toFixed(4);
+    document.getElementById('hud-t2').textContent=RD.totalSteps;
+    document.getElementById('hdr-t').textContent=frameCount;
+  }
+
+  // MODO PARTITURA
+  if(scoreRunning){
+    const elapsed=(performance.now()-scoreStartTime)/1000;
+    const prog=Math.min(1,elapsed/CFG.scoreDur);
+    scoreFrame++;
+
+    // Capturar frame para partitura
+    if(scoreFrame<=scoreTotalFrames){
+      capturedFrames.push({
+        risk:riskVal, conf:confVal,
+        eigs:[...eigenvalues],
+        phase:vizPhase,
+        t:elapsed
+      });
+      document.getElementById('score-bar').style.width=(prog*100)+'%';
+      document.getElementById('score-bar2').style.width=(prog*100)+'%';
+      if(scoreFrame%10===0){
+        document.getElementById('score-status').textContent=
+          `▶ Partitura ${scoreFrame}/${scoreTotalFrames} frames · ${elapsed.toFixed(1)}s / ${CFG.scoreDur}s`;
+      }
+    }
+
+    if(elapsed>=CFG.scoreDur) stopScore();
+  }
+
+  requestAnimationFrame(mainLoop);
+}
+
+// ═══════════════════════════════════════════════════════
+// 11. RESIZE
+// ═══════════════════════════════════════════════════════
+
+function resizeAll(){ resizeRD(); resizeViz(); }
+window.addEventListener('resize',resizeAll);
+
+// ═══════════════════════════════════════════════════════
+// 12. BINDINGS UI
+// ═══════════════════════════════════════════════════════
+
+function slV(id){ return +(document.getElementById('sl-'+id)?.value||0); }
+function slBind(id,setter){
+  const el=document.getElementById('sl-'+id);
+  if(!el) return;
+  el.addEventListener('input',function(){
+    const vEl=document.getElementById('v-'+id);
+    if(vEl) vEl.textContent=(+this.value).toFixed(this.step?.includes('0.00')?4:2);
+    setter(+this.value);
+  });
+}
+function updateSliderLabels(){
+  ['Du','Dv','rw','ew','iter','fbase','rev','wblend','rmod'].forEach(id=>{
+    const el=document.getElementById('sl-'+id);
+    const vEl=document.getElementById('v-'+id);
+    if(el&&vEl) vEl.textContent=(+el.value).toFixed(id==='fbase'?0:2);
+  });
+}
+
+slBind('Du',v=>RD.Du=v);
+slBind('Dv',v=>RD.Dv=v);
+slBind('iter',v=>RD.iters=Math.round(v));
+['fbase','rev','wblend','rmod','rw','ew'].forEach(id=>{
+  slBind(id,()=>{});
+});
+
+// Viz tabs
+document.querySelectorAll('.vtab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('sel'));
+    tab.classList.add('sel');
+    vizMode=tab.dataset.v;
+  });
+});
+
+document.getElementById('btn-sonify').addEventListener('click',()=>{
+  initAudio();
+  sonify();
+  document.getElementById('audio-status').textContent='▶ sonando…';
+  document.getElementById('ft-audio').textContent='sonando';
+  document.getElementById('ft-audio2').textContent='sonando';
+  setTimeout(()=>{
+    document.getElementById('audio-status').textContent='— completado —';
+    document.getElementById('ft-audio').textContent='listo';
+    document.getElementById('ft-audio2').textContent='listo';
+  }, CFG.scoreDur*1000);
+});
+
+document.getElementById('btn-stop').addEventListener('click',()=>{
+  stopAudio();
+  document.getElementById('audio-status').textContent='— detenido —';
+  document.getElementById('ft-audio').textContent='detenido';
+  document.getElementById('ft-audio2').textContent='detenido';
+});
+
+document.getElementById('btn-score').addEventListener('click',()=>{
+  if(scoreRunning){ stopScore(); return; }
+  startScore();
+  document.getElementById('btn-score').textContent='◉ DETENER';
+  setTimeout(()=>document.getElementById('btn-score').textContent='◉ PARTITURA', CFG.scoreDur*1000+200);
+});
+
+document.getElementById('btn-rec').addEventListener('click',()=>{
+  if(!scoreRunning) startScore();
+});
+
+document.getElementById('btn-export').addEventListener('click',()=>{
+  if(capturedFrames.length>0) exportScoreImage();
+  else alert('Genera primero una partitura con ◉ PARTITURA');
+});
+
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  stopAudio();
+  if(mediaRecorder&&mediaRecorder.state==='recording') mediaRecorder.stop();
+  scoreRunning=false;
+  const appEl = document.getElementById('app');
+  appEl.style.display = 'none';
+  appEl.classList.remove('visible');
+  document.getElementById('splash').style.display='flex';
+  document.getElementById('launch-btn').disabled=false;
+  setStatus('— listo para reconectar —','');
+  weatherData={};
+  document.getElementById('btn-dl-wav').style.display='none';
+  document.getElementById('btn-dl-frames').style.display='none';
+});
+
+document.getElementById('pill-motor').addEventListener('click',()=>{
+  isRunning=!isRunning;
+});
+
+document.getElementById('pill-fetch').addEventListener('click',async()=>{
+  document.getElementById('pill-fetch').classList.add('active');
+  const ok=await fetchOpenMeteo();
+  if(ok){ initWindow(); updateWxStrip(); updateMetrics(); }
+  setTimeout(()=>document.getElementById('pill-fetch').classList.remove('active'),1000);
+});
+
+// App oculto inicialmente vía CSS (sin .visible)
+</script>
+</body>
+</html>
