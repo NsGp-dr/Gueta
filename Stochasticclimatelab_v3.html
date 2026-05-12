@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>∑ Stochastic Laboratory · Meteorológico v3</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+        :root {
+            --bg: #030608; --bg2: #05090e; --bg3: #070d14; --bord: #0c1e2c; --bord2: #132840;
+            --c1: #00c8e0; --c2: #39ff84; --c3: #ff5e1a; --c4: #b06aff; --c5: #ffe066;
+            --dim: #1e3a52; --muted: #3d6880; --text: #8ab8cc; --bright: #d4edf7;
+            --risk-h: #ff3b3b; --risk-m: #ff8c00; --risk-l: #39ff84;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text);
+            overflow: hidden; height: 100vh; font-size: 11px;
+        }
+        .app {
+            display: grid; grid-template-rows: 42px 1fr; grid-template-columns: 300px 1fr 300px;
+            height: 100vh; width: 100vw;
+        }
+        .topbar {
+            grid-column: 1/-1; display: flex; align-items: center; padding: 0 14px; gap: 14px;
+            border-bottom: 1px solid var(--bord); background: var(--bg2); z-index: 100;
+        }
+        .logo-mark { font-family:'Syne',sans-serif; font-weight:800; font-size:16px; letter-spacing:4px; color:var(--c1); text-shadow:0 0 18px rgba(0,200,224,0.35); flex-shrink:0; }
+        .logo-mark small { font-size:8px; letter-spacing:2px; color:var(--muted); display:block; line-height:1; margin-top:-2px; }
+        .topbar-sep { width:1px; height:20px; background:var(--bord); flex-shrink:0; }
+        .status-pills { display:flex; gap:8px; align-items:center; flex:1; overflow:hidden; }
+        .spill { display:flex; align-items:center; gap:6px; padding:3px 10px; border-radius:2px; border:1px solid var(--bord); font-size:8px; letter-spacing:1.5px; color:var(--muted); background:var(--bg3); white-space:nowrap; }
+        .spill .dot { width:5px; height:5px; border-radius:50%; background:var(--dim); flex-shrink:0; }
+        .spill.active .dot { background:var(--c2); box-shadow:0 0 6px var(--c2); animation:blink 2s infinite; }
+        .spill.warn .dot { background:var(--c3); box-shadow:0 0 6px var(--c3); }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .spill .slabel { color:var(--muted); } .spill .sval { color:var(--bright); font-weight:600; }
+        .topbar-ctrls { display:flex; gap:6px; align-items:center; margin-left:auto; flex-shrink:0; }
+        .coord-group { display:flex; gap:4px; align-items:center; }
+        .coord-group label { font-size:8px; color:var(--muted); letter-spacing:1px; }
+        input[type=text] { background:var(--bg3); border:1px solid var(--bord); color:var(--bright); font-family:'JetBrains Mono',monospace; font-size:10px; padding:4px 8px; border-radius:2px; width:72px; outline:none; }
+        .btn { background:none; border:1px solid var(--dim); color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:8px; letter-spacing:2px; padding:4px 12px; cursor:pointer; border-radius:2px; transition:all 0.15s; white-space:nowrap; }
+        .btn:hover { border-color:var(--c1); color:var(--c1); box-shadow:0 0 8px rgba(0,200,224,0.2); }
+        .btn.primary { border-color:var(--c1); color:var(--c1); } .btn.primary:hover { background:var(--c1); color:var(--bg); }
+        .btn.add-station { border-color:var(--c2); color:var(--c2); }
+        .btn.add-station:hover { background:rgba(57,255,132,0.15); }
+        .btn.active-add { background:rgba(57,255,132,0.2); border-color:var(--c2); color:var(--c2); }
+
+        .left-panel { grid-column:1; grid-row:2; display:flex; flex-direction:column; border-right:1px solid var(--bord); overflow-y:auto; scrollbar-width:none; background:var(--bg2); }
+        .left-panel::-webkit-scrollbar { display:none; }
+        .center-panel { grid-column:2; grid-row:2; display:flex; flex-direction:column; background:var(--bg); overflow-y:auto; scrollbar-width:none; padding:8px 10px; gap:8px; }
+        .center-panel::-webkit-scrollbar { display:none; }
+        .right-panel { grid-column:3; grid-row:2; display:flex; flex-direction:column; border-left:1px solid var(--bord); background:var(--bg2); overflow-y:auto; scrollbar-width:none; }
+        .right-panel::-webkit-scrollbar { display:none; }
+
+        .section { padding:10px 12px; border-bottom:1px solid var(--bord); flex-shrink:0; }
+        .section-title { font-family:'Syne',sans-serif; font-size:8px; font-weight:700; letter-spacing:3px; color:var(--dim); text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+        .section-title::before { content:''; display:inline-block; width:12px; height:1px; background:var(--c1); flex-shrink:0; }
+        .section-title em { color:var(--c4); font-style:normal; }
+        .drow { display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid rgba(12,30,44,0.5); gap:6px; }
+        .drow:last-child { border-bottom:none; }
+        .dl { color:var(--muted); font-size:9px; letter-spacing:1px; flex-shrink:0; }
+        .dv { color:var(--bright); font-size:9px; font-weight:600; text-align:right; }
+        .dv.pos { color:var(--c2); } .dv.neg { color:var(--risk-h); } .dv.mid { color:var(--c3); }
+        .canvas-wrap { border:1px solid var(--bord); background:var(--bg3); border-radius:2px; overflow:hidden; }
+        .canvas-wrap canvas { display:block; width:100%; image-rendering:pixelated; }
+
+        .module-tabs { display:flex; gap:4px; border-bottom:1px solid var(--bord); padding-bottom:6px; flex-shrink:0; flex-wrap:wrap; }
+        .module-tab { padding:3px 10px; background:#111; color:#666; border:1px solid #333; cursor:pointer; font-size:10px; font-family:'JetBrains Mono',monospace; border-radius:2px; letter-spacing:1px; }
+        .module-tab:hover { border-color:var(--c1); color:var(--c1); }
+        .module-tab.sel { background:#1a2a1a; color:#4f4; border-color:#4f4; }
+        .module-tab.forecast-tab.sel { background:#1a102a; color:var(--c4); border-color:var(--c4); }
+
+        input[type=range] { accent-color:var(--c1); cursor:pointer; width:100%; margin:3px 0; }
+        label { font-size:9px; color:var(--muted); letter-spacing:1px; display:block; margin-bottom:2px; }
+
+        /* MAP */
+        #map { height: 190px; border:1px solid var(--bord); border-radius:2px; position:relative; }
+        .leaflet-container { background: var(--bg3) !important; }
+
+        /* Timeline strip */
+        #timeline-strip { height: 28px; background:var(--bg3); border:1px solid var(--bord); border-radius:2px; margin-top:4px; position:relative; overflow:hidden; cursor:pointer; }
+        #tl-track { position:absolute; top:0; left:0; right:0; bottom:0; }
+        #tl-window { position:absolute; top:0; bottom:0; background:rgba(0,200,224,0.15); border-left:2px solid var(--c1); border-right:2px solid var(--c1); transition:left 0.1s, width 0.1s; }
+        #tl-labels { position:absolute; top:2px; left:0; right:0; display:flex; justify-content:space-between; padding:0 4px; pointer-events:none; }
+        #tl-labels span { font-size:7px; color:var(--dim); }
+        #tl-cursor { position:absolute; top:0; bottom:0; width:1px; background:var(--c5); opacity:0.7; pointer-events:none; }
+
+        /* Station list */
+        .station-item { display:flex; align-items:center; gap:6px; padding:3px 0; border-bottom:1px solid rgba(12,30,44,0.4); }
+        .station-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .station-name { flex:1; font-size:9px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .station-badge { font-size:7px; padding:1px 5px; border-radius:1px; border:1px solid; }
+        .station-remove { cursor:pointer; font-size:9px; color:var(--risk-h); padding:0 2px; opacity:0.6; }
+        .station-remove:hover { opacity:1; }
+
+        .rain-prediction { text-align:center; padding:8px; margin-top:6px; border-radius:2px; border:1px solid var(--bord); background:var(--bg3); }
+        .rain-prediction .big-text { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; }
+        .rain-prediction.yes { border-color:var(--c1); } .rain-prediction.yes .big-text { color:var(--c1); }
+        .rain-prediction.no { border-color:var(--c2); } .rain-prediction.no .big-text { color:var(--c2); }
+
+        /* Forecast panel */
+        .forecast-horizon { display:flex; gap:4px; margin-bottom:8px; flex-wrap:wrap; }
+        .fh-btn { padding:2px 8px; border:1px solid var(--dim); color:var(--muted); background:none; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:8px; border-radius:1px; }
+        .fh-btn.sel { border-color:var(--c4); color:var(--c4); background:rgba(176,106,255,0.1); }
+        .forecast-bar { height:6px; border-radius:1px; margin-bottom:2px; }
+        .confidence-band { position:relative; height:60px; margin:6px 0; }
+        #forecast-canvas { width:100%; height:100%; border:1px solid var(--bord); border-radius:2px; }
+        .mc-state-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; margin-top:6px; }
+        .mc-state { text-align:center; padding:6px 4px; border:1px solid var(--bord); border-radius:2px; background:var(--bg3); }
+        .mc-state .state-label { font-size:8px; color:var(--muted); display:block; }
+        .mc-state .state-prob { font-size:16px; font-family:'Syne',sans-serif; font-weight:700; }
+        .mc-state.warm .state-prob { color:var(--c5); }
+        .mc-state.neutral .state-prob { color:var(--muted); }
+        .mc-state.cold .state-prob { color:var(--c1); }
+        .regime-badge { display:inline-block; padding:2px 8px; border-radius:1px; font-size:8px; letter-spacing:2px; border:1px solid; }
+        .regime-badge.stable { border-color:var(--c2); color:var(--c2); background:rgba(57,255,132,0.08); }
+        .regime-badge.coherent { border-color:var(--c1); color:var(--c1); background:rgba(0,200,224,0.08); }
+        .regime-badge.transition { border-color:var(--c5); color:var(--c5); background:rgba(255,224,102,0.08); }
+        .regime-badge.chaotic { border-color:var(--risk-h); color:var(--risk-h); background:rgba(255,59,59,0.08); }
+        .voronoi-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <header class="topbar">
+        <div class="logo-mark">∑ SL<small>METEOROLÓGICO v3</small></div>
+        <div class="topbar-sep"></div>
+        <div class="status-pills">
+            <div class="spill active"><div class="dot"></div><span class="slabel">W</span><span class="sval" id="pill-w">40</span></div>
+            <div class="spill"><div class="dot"></div><span class="slabel">q</span><span class="sval" id="pill-q">—</span></div>
+            <div class="spill"><div class="dot"></div><span class="slabel">λ₁</span><span class="sval" id="pill-l1">—</span></div>
+            <div class="spill"><div class="dot"></div><span class="slabel">RIESGO</span><span class="sval" id="pill-risk">—</span></div>
+            <div class="spill"><div class="dot"></div><span class="slabel">ESTACIONES</span><span class="sval" id="pill-stations">1</span></div>
+            <div class="spill"><div class="dot"></div><span class="slabel">HORA</span><span class="sval" id="pill-time">—</span></div>
+        </div>
+        <div class="topbar-ctrls">
+            <div class="coord-group"><label>LAT</label><input type="text" id="city-lat" value="4.711"><label>LON</label><input type="text" id="city-lon" value="-74.072"></div>
+            <button class="btn primary" id="fetch-btn">CARGAR</button>
+            <button class="btn add-station" id="btn-add-station" title="Clic en el mapa para añadir estación">+ ESTACIÓN</button>
+            <button class="btn" id="btn-sonify">▶ SONAR</button>
+            <button class="btn" id="btn-stop">■ STOP</button>
+        </div>
+    </header>
+
+    <div class="left-panel scroll-fill">
+        <div class="section" style="padding-bottom:6px">
+            <div id="map"></div>
+            <!-- Timeline visual sobre el mapa -->
+            <div id="timeline-strip">
+                <div id="tl-track"></div>
+                <div id="tl-window"></div>
+                <div id="tl-cursor"></div>
+                <div id="tl-labels"><span id="tl-start">—</span><span id="tl-mid">—</span><span id="tl-end">—</span></div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">VENTANA <em>· Temporal</em></div>
+            <label>W = <b style="color:var(--c1)" id="lbl-w">40</b> h</label>
+            <input type="range" id="slider-w" min="12" max="168" value="40" step="1">
+            <label>t₀ = <b style="color:var(--c1)" id="lbl-t0">0</b></label>
+            <input type="range" id="slider-t0" min="0" max="100" value="0" step="1">
+            <div style="font-size:8px;color:var(--dim);margin-top:4px">n=<span id="info-n">40</span> · p=<span id="info-p">6</span> · q=<span id="info-q">0.15</span> · MP_λ₊=<span id="info-mp">—</span></div>
+            <div style="font-size:8px;color:var(--muted);margin-top:2px" id="time-range-label">—</div>
+        </div>
+        <div class="section">
+            <div class="section-title">ESTACIONES <em>· Multi-punto</em></div>
+            <div id="station-list" style="min-height:40px"></div>
+        </div>
+        <div class="section">
+            <div class="section-title">¿VA A LLOVER? <em>· Predicción</em></div>
+            <div class="rain-prediction no" id="rain-pred-box"><div class="big-text" id="rain-pred-text">NO</div><div style="font-size:8px;color:var(--muted);margin-top:2px" id="rain-pred-detail">—</div></div>
+        </div>
+    </div>
+
+    <div class="center-panel">
+        <div class="module-tabs" id="module-tabs">
+            <button class="module-tab sel" data-mod="heatmap">HEATMAP</button>
+            <button class="module-tab" data-mod="corr">CORR+MAJ</button>
+            <button class="module-tab" data-mod="copulas">CÓPULAS</button>
+            <button class="module-tab" data-mod="eigen">EIGENVALUES</button>
+            <button class="module-tab" data-mod="giros">GIROS RHYTHM</button>
+            <button class="module-tab" data-mod="evo">EVOLUCIÓN</button>
+            <button class="module-tab forecast-tab" data-mod="forecast">FORECAST ▸</button>
+        </div>
+        <div id="module-content" style="flex:1;display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+    <div class="right-panel scroll-fill">
+        <div class="section">
+            <div class="section-title">RIESGO <em>· Precipitación</em></div>
+            <canvas id="risk-gauge" style="display:block;width:100%;height:50px;border:1px solid var(--bord);border-radius:2px"></canvas>
+            <div class="drow"><div class="dl">Riesgo ventana</div><div class="dv" id="risk-val">—</div></div>
+            <div class="drow"><div class="dl">Confianza</div><div class="dv" id="risk-conf">—</div></div>
+            <div style="font-size:8px;color:var(--dim);margin-top:4px" id="risk-legend">Calculado sobre la ventana</div>
+        </div>
+        <div class="section">
+            <div class="section-title">EIGENVALUES <em>· Marchenko-Pastur</em></div>
+            <div class="eigen-group" id="eigen-display"></div>
+            <div style="margin-top:6px"><span class="regime-badge stable" id="regime-badge-r">ESTABLE</span></div>
+        </div>
+        <div class="section">
+            <div class="section-title">MARKOV <em>· Transición</em></div>
+            <div id="markov-display">
+                <div style="font-size:9px;color:var(--dim)">Carga datos para ver cadena</div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title">VARIABLES <em>· Actuales</em></div>
+            <div id="weather-now"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STOCHASTIC CLIMATE LABORATORY  ·  v3 · Bogotá
+//  Multi-estación, Forecasting Markov+Eigenvalue,
+//  Timeline corregido, q=n/p correctamente calculado
+// ═══════════════════════════════════════════════════════
+
+// ── CONSTANTES ──
+const VARS = ['Temp (°C)','Hum (%)','Pres (hPa)','Viento (m/s)','Nubes (%)','Lluvia (mm)'];
+const COLORS = ['#ff5e1a','#00c8e0','#b06aff','#39ff84','#ffe066','#ff3b3b'];
+const STATION_COLORS = ['#00c8e0','#39ff84','#b06aff','#ffe066','#ff5e1a','#ff3b3b','#00e5b0','#e040fb'];
+
+// ── ESTADO GLOBAL ──
+let stations = [];        // [{lat, lon, label, color, hourly, series, seriesRaw, marker, voronoiPoly}]
+let activeStationIdx = 0; // estación principal (primera cargada)
+let hourly=[], series=[], seriesRaw=[], wSize=40, wStart=0, activeMod='heatmap';
+let windowed=[], corrM=[], dsM=[], eigs=[], riskVec=[], uniforms=[], majVec=[], q=0;
+let markovMatrices=[], markovStates=[];
+let addingStation = false;
+let map, radarLayer, voronoiSvg;
+let forecastHorizon = 12; // horas
+
+// ── MATH (corregido) ──
+function pearsonCorr(a, b) {
+    const n = a.length;
+    if (n < 2) return 0;
+    const ma = a.reduce((s,x)=>s+x,0)/n, mb = b.reduce((s,x)=>s+x,0)/n;
+    let num=0, da=0, db=0;
+    for (let i=0; i<n; i++) { num+=(a[i]-ma)*(b[i]-mb); da+=(a[i]-ma)**2; db+=(b[i]-mb)**2; }
+    return (da<1e-12||db<1e-12) ? 0 : num/Math.sqrt(da*db);
+}
+
+function sinkhornNormalize(mat, it=30) {
+    let M = mat.map(r=>r.map(v=>Math.max(0,v)));
+    const n = M.length;
+    for (let t=0; t<it; t++) {
+        for (let i=0; i<n; i++) { const s=M[i].reduce((a,b)=>a+b,0)||1; for(let j=0;j<n;j++) M[i][j]/=s; }
+        for (let j=0; j<n; j++) { const s=M.reduce((a,r)=>a+r[j],0)||1; for(let i=0;i<n;i++) M[i][j]/=s; }
+    }
+    return M;
+}
+
+function majorization(vec) {
+    const s=[...vec].sort((a,b)=>b-a); let sum=0; return s.map(v=>{sum+=Math.abs(v); return sum;});
+}
+
+function toUniform(arr) {
+    const idx=arr.map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v);
+    const r=new Array(arr.length);
+    idx.forEach(({i},k)=>r[i]=(k+1)/(arr.length+1));
+    return r;
+}
+
+// Power iteration para eigenvalues - corregido con deflación correcta
+function eigenvalues(mat, num=5) {
+    const n = mat.length;
+    if (n === 0) return [];
+    let M = mat.map(r=>[...r]);
+    let eigs = [];
+    for (let k=0; k<Math.min(n,num); k++) {
+        // Vector aleatorio ortogonalizado con GS
+        let v = Array.from({length:n},()=>Math.random()-0.5);
+        // Ortogonalizar respecto a eigenvectores previos (simplificado)
+        let norm = Math.sqrt(v.reduce((s,x)=>s+x*x,0));
+        if (norm < 1e-12) v = v.map((_,i)=>i===k?1:0);
+        else v = v.map(x=>x/norm);
+
+        let lambda = 0;
+        for (let it=0; it<200; it++) {
+            const Mv = M.map(r=>r.reduce((s,x,j)=>s+x*v[j],0));
+            lambda = Mv.reduce((s,x,j)=>s+x*v[j],0);
+            norm = Math.sqrt(Mv.reduce((s,x)=>s+x*x,0));
+            if (norm < 1e-12) break;
+            v = Mv.map(x=>x/norm);
+        }
+        eigs.push(Math.abs(lambda));
+        // Deflación de Hotelling
+        for (let i=0; i<n; i++)
+            for (let j=0; j<n; j++)
+                M[i][j] -= eigs[k]*v[i]*v[j];
+    }
+    return eigs.sort((a,b)=>b-a);
+}
+
+// CORRECCIÓN: Marchenko-Pastur con q = p/n (ratio variables/muestras)
+// El límite superior λ+ = σ²(1+√q)² donde q = p/n
+// Para ruido puro σ²=1; eigenvalores por encima de λ+ son significativos
+function marchenkoPasturUpper(p, n, sigma2=1) {
+    const q = p / n;  // q = p/n es el ratio correcto (< 1 cuando n > p)
+    return sigma2 * Math.pow(1 + Math.sqrt(q), 2);
+}
+
+// ── MARKOV (del main.py, adaptado) ──
+// Discretiza una serie continua en 3 estados: frío(0), neutral(1), cálido(2)
+function discretizeSeries(arr) {
+    const sorted = [...arr].sort((a,b)=>a-b);
+    const p33 = sorted[Math.floor(arr.length*0.33)];
+    const p66 = sorted[Math.floor(arr.length*0.66)];
+    return arr.map(v => v <= p33 ? 0 : v <= p66 ? 1 : 2);
+}
+
+function buildTransitionMatrix(states) {
+    const M = [[0,0,0],[0,0,0],[0,0,0]];
+    for (let i=0; i<states.length-1; i++) {
+        M[states[i]][states[i+1]]++;
+    }
+    // Normalizar filas (con suavizado de Laplace para evitar ceros)
+    return M.map(row => {
+        const sum = row.reduce((a,b)=>a+b,0) + 3; // suavizado +1 por estado
+        return row.map((v,j)=>(v+1)/sum);
+    });
+}
+
+// Predice distribución de probabilidad a h pasos (potencia de matriz)
+function markovStepN(T, initState, steps) {
+    // Distribución inicial: estado actual = certeza
+    let dist = [0,0,0];
+    dist[initState] = 1.0;
+    for (let s=0; s<steps; s++) {
+        const newDist = [0,0,0];
+        for (let j=0; j<3; j++)
+            for (let i=0; i<3; i++)
+                newDist[j] += dist[i]*T[i][j];
+        dist = newDist;
+    }
+    return dist; // [P(frío), P(neutral), P(cálido)]
+}
+
+// Agrega predicciones de múltiples estaciones ponderadas por correlación cruzada con estación principal
+function aggregateForecast(stationForecasts, weights) {
+    const totalW = weights.reduce((a,b)=>a+b,0.001);
+    const result = [0,0,0];
+    stationForecasts.forEach((fc,i) => {
+        fc.forEach((p,j) => result[j] += p*(weights[i]/totalW));
+    });
+    return result;
+}
+
+// Intervalos de confianza bootstrap sobre predicción Markov
+function markovConfidenceInterval(T, initState, steps, nboot=200) {
+    const dists = [];
+    for (let b=0; b<nboot; b++) {
+        // Perturba T con ruido Dirichlet
+        const Tb = T.map(row => {
+            const perturbed = row.map(p => Math.max(0, p + (Math.random()-0.5)*0.1));
+            const s = perturbed.reduce((a,b)=>a+b,0.001);
+            return perturbed.map(p=>p/s);
+        });
+        dists.push(markovStepN(Tb, initState, steps));
+    }
+    // Percentiles 10/90 para cada estado
+    const ci = [0,1,2].map(s => {
+        const vals = dists.map(d=>d[s]).sort((a,b)=>a-b);
+        return { p10: vals[Math.floor(nboot*0.10)], p50: vals[Math.floor(nboot*0.50)], p90: vals[Math.floor(nboot*0.90)] };
+    });
+    return ci;
+}
+
+// ── AUDIO ──
+class AudioEngine {
+    constructor(){this.ctx=null;this.nodes=[];}
+    init(){if(!this.ctx)this.ctx=new(window.AudioContext||window.webkitAudioContext)();}
+    sonify(data,dur=4){
+        this.init();this.stop();const ctx=this.ctx,now=ctx.currentTime,beat=dur/Math.max(1,data[0].length);
+        for(let j=0;j<data[0].length;j++){const t=now+j*beat;for(let i=0;i<data.length;i++){const v=data[i][j];if(Math.abs(v)<0.05)continue;const o=ctx.createOscillator(),g=ctx.createGain();
+        o.frequency.value=150+Math.abs(v)*400;o.type=v>0?'sine':'sawtooth';
+        g.gain.setValueAtTime(Math.abs(v)*0.08,t);g.gain.exponentialRampToValueAtTime(0.0001,t+beat*0.85);
+        o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+beat);this.nodes.push(o);}}
+    }
+    stop(){this.nodes.forEach(n=>{try{n.stop()}catch(e){}});this.nodes=[];}
+}
+const audio = new AudioEngine();
+
+// ── MAP ──
+function initMap(lat, lon) {
+    if (map) { map.remove(); map = null; }
+    map = L.map('map', { zoomControl: false, attributionControl: false }).setView([lat, lon], 11);
+    // Carto Dark para estilo HUD
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+
+    // RainViewer radar overlay
+    fetch('https://api.rainviewer.com/public/weather-maps.json')
+        .then(r=>r.json())
+        .then(data=>{
+            if(data.radar&&data.radar.past&&data.radar.past.length){
+                const latest=data.radar.past[data.radar.past.length-1];
+                if(radarLayer)map.removeLayer(radarLayer);
+                radarLayer=L.tileLayer(`https://tilecache.rainviewer.com/v2/radar/${latest.path}/256/{z}/{x}/{y}/2/1_1.png`,{opacity:0.45,tileSize:256,maxZoom:12}).addTo(map);
+            }
+        }).catch(()=>{});
+
+    // Click en mapa para añadir estaciones
+    map.on('click', onMapClick);
+}
+
+function onMapClick(e) {
+    if (!addingStation) return;
+    const lat = e.latlng.lat, lon = e.latlng.lng;
+    addStation(lat, lon);
+    setAddingMode(false);
+}
+
+function setAddingMode(active) {
+    addingStation = active;
+    const btn = document.getElementById('btn-add-station');
+    btn.className = 'btn add-station' + (active ? ' active-add' : '');
+    btn.textContent = active ? '✕ CANCELAR' : '+ ESTACIÓN';
+    map.getContainer().style.cursor = active ? 'crosshair' : '';
+}
+
+async function addStation(lat, lon) {
+    const idx = stations.length;
+    const color = STATION_COLORS[idx % STATION_COLORS.length];
+    const label = `EST-${idx+1}`;
+
+    // Marker en el mapa
+    const marker = L.marker([lat, lon], {
+        icon: L.divIcon({
+            className:'',
+            html:`<div style="width:10px;height:10px;background:${color};border-radius:50%;box-shadow:0 0 10px ${color};border:1px solid #fff"></div>`,
+            iconSize:[10,10]
+        })
+    }).bindTooltip(label, {permanent:true, direction:'top', className:'', offset:[0,-4]}).addTo(map);
+
+    const station = { lat, lon, label, color, hourly:[], series:[], seriesRaw:[], marker, markovT:null, markovCurrState:0 };
+    stations.push(station);
+
+    updateStationList();
+    document.getElementById('pill-stations').textContent = stations.length;
+
+    // Cargar datos automáticamente
+    try {
+        const data = await fetchData(lat, lon);
+        if (data.length) {
+            station.hourly = data;
+            processStation(station);
+            mergeAndRecompute();
+        }
+    } catch(e) { console.warn('Error cargando estación:', e); }
+}
+
+function removeStation(idx) {
+    if (stations[idx].marker) map.removeLayer(stations[idx].marker);
+    stations.splice(idx, 1);
+    if (activeStationIdx >= stations.length) activeStationIdx = Math.max(0, stations.length-1);
+    updateStationList();
+    document.getElementById('pill-stations').textContent = stations.length;
+    if (stations.length > 0) mergeAndRecompute();
+    else { hourly=[]; series=[]; seriesRaw=[]; windowed=[]; eigs=[]; riskVec=[]; }
+    updateVoronoiOverlay();
+}
+
+function updateStationList() {
+    const el = document.getElementById('station-list');
+    if (stations.length === 0) { el.innerHTML='<div style="font-size:9px;color:var(--dim)">Sin estaciones. Clic en mapa.</div>'; return; }
+    el.innerHTML = stations.map((s,i)=>`
+        <div class="station-item">
+            <div class="station-dot" style="background:${s.color};box-shadow:0 0 6px ${s.color}"></div>
+            <span class="station-name">${s.label} · ${s.lat.toFixed(3)},${s.lon.toFixed(3)}</span>
+            <span class="station-badge" style="color:${s.color};border-color:${s.color}">${s.hourly.length>0?s.hourly.length+'h':'—'}</span>
+            ${i>0?`<span class="station-remove" onclick="removeStation(${i})">✕</span>`:''}
+        </div>`).join('');
+}
+
+// Diagrama de Voronoi sobre el mapa usando SVG overlay de Leaflet
+function updateVoronoiOverlay() {
+    if (voronoiSvg) { voronoiSvg.remove(); voronoiSvg=null; }
+    if (stations.length < 2) return;
+    // Voronoi en coordenadas de píxel del mapa
+    const pts = stations.map(s => map.latLngToLayerPoint([s.lat, s.lon]));
+    const size = map.getSize();
+    // Simple Voronoi con SVG nativo (Fortune no disponible, usamos distancia)
+    const W=size.x, H=size.y, res=8;
+    const canvas = document.createElement('canvas');
+    canvas.width=W; canvas.height=H;
+    const ctx=canvas.getContext('2d');
+    const imgData=ctx.createImageData(W,H);
+    for(let y=0;y<H;y+=res){for(let x=0;x<W;x+=res){
+        let minD=Infinity, minI=0;
+        pts.forEach((p,i)=>{const d=(x-p.x)**2+(y-p.y)**2;if(d<minD){minD=d;minI=i;}});
+        const hex=stations[minI].color;
+        const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+        for(let dy=0;dy<res&&y+dy<H;dy++)for(let dx=0;dx<res&&x+dx<W;dx++){
+            const idx=((y+dy)*W+(x+dx))*4;
+            imgData.data[idx]=r;imgData.data[idx+1]=g;imgData.data[idx+2]=b;imgData.data[idx+3]=22;
+        }
+    }}
+    ctx.putImageData(imgData,0,0);
+    // Dibujar bordes Voronoi
+    ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;
+    // Simplificado: dibujamos mediatriz entre cada par
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+        const mx=(pts[i].x+pts[j].x)/2,my=(pts[i].y+pts[j].y)/2;
+        const dx=pts[j].x-pts[i].x,dy=pts[j].y-pts[i].y;
+        const len=Math.sqrt(dx*dx+dy*dy)||1;
+        const nx=-dy/len,ny=dx/len;
+        ctx.beginPath();ctx.moveTo(mx-nx*Math.max(W,H),my-ny*Math.max(W,H));ctx.lineTo(mx+nx*Math.max(W,H),my+ny*Math.max(W,H));ctx.stroke();
+    }
+    // Añadir como overlay de Leaflet
+    const bounds=map.getBounds();
+    voronoiSvg=L.imageOverlay(canvas.toDataURL(),bounds,{opacity:1,interactive:false}).addTo(map);
+    map.once('moveend zoomend',updateVoronoiOverlay);
+}
+
+// ── FETCH ──
+async function fetchData(lat, lon) {
+    const end=new Date();
+    const start=new Date(end.getTime()-7*86400*1000);
+    const fmt=d=>d.toISOString().split('T')[0];
+    const url=`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${fmt(start)}&end_date=${fmt(end)}&hourly=temperature_2m,relativehumidity_2m,pressure_msl,windspeed_10m,cloudcover,rain&timezone=America%2FBogota`;
+    const r=await fetch(url), d=await r.json();
+    if(!d.hourly)throw new Error('Sin datos');
+    return d.hourly.time.map((t,i)=>({
+        time:t,
+        temp:d.hourly.temperature_2m[i]??0,
+        humidity:d.hourly.relativehumidity_2m[i]??0,
+        pressure:d.hourly.pressure_msl[i]??0,
+        wind:d.hourly.windspeed_10m[i]??0,
+        clouds:d.hourly.cloudcover[i]??0,
+        rain:d.hourly.rain[i]??0
+    }));
+}
+
+// ── PROCESAMIENTO POR ESTACIÓN ──
+function processStation(st) {
+    const raw = st.hourly;
+    const cols=[[],[],[],[],[],[]];
+    raw.forEach(d=>{cols[0].push(d.temp);cols[1].push(d.humidity);cols[2].push(d.pressure);cols[3].push(d.wind);cols[4].push(d.clouds);cols[5].push(d.rain);});
+    st.seriesRaw = cols;
+    st.series = cols.map(a=>{
+        const m=a.reduce((s,v)=>s+v,0)/a.length;
+        const sd=Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/a.length)||1;
+        return a.map(v=>(v-m)/sd);
+    });
+    // Cadena de Markov sobre temperatura (var 0) — estado climático general
+    const tempDiscrete = discretizeSeries(cols[0]);
+    st.markovT = buildTransitionMatrix(tempDiscrete);
+    st.markovCurrState = tempDiscrete[tempDiscrete.length-1] ?? 1;
+    st.markovTempStates = tempDiscrete;
+}
+
+// ── MERGE: combina todas las estaciones ──
+function mergeAndRecompute() {
+    if (stations.length === 0) return;
+    // Usa la primera estación como referencia temporal
+    const ref = stations.find(s=>s.hourly.length>0);
+    if (!ref) return;
+    hourly = ref.hourly;
+    // Para análisis espectral, usa la estación activa (primera con datos)
+    const active = stations.find(s=>s.series.length>0) || stations[0];
+    series = active.series;
+    seriesRaw = active.seriesRaw;
+    document.getElementById('slider-t0').max = Math.max(0, hourly.length-wSize);
+    if (wStart > hourly.length-wSize) wStart = Math.max(0, hourly.length-wSize);
+    document.getElementById('slider-t0').value = wStart;
+    recompute();
+    updateVoronoiOverlay();
+}
+
+// ── RECOMPUTE (eigenvalues, correlaciones, riesgo) ──
+function recompute() {
+    if(!series.length)return;
+    const n = series[0].length;
+    const p = series.length; // p=6 variables
+    const endIdx = Math.min(wStart+wSize, n);
+    const startIdx = Math.max(0, endIdx-wSize);
+    windowed = series.map(s=>s.slice(startIdx,endIdx));
+    const rawWin = seriesRaw.map(s=>s.slice(startIdx,endIdx));
+    const win_n = endIdx - startIdx;
+
+    // CORRECCIÓN: q = p/n (proporción variables/observaciones)
+    // Válido cuando n >= p (caso usual). Si n < p, análisis es rank-deficient.
+    q = p / win_n;
+    const mp_upper = marchenkoPasturUpper(p, win_n);
+
+    corrM = Array.from({length:p},(_,i)=>Array.from({length:p},(_,j)=>pearsonCorr(windowed[i],windowed[j])));
+    dsM = sinkhornNormalize(corrM.map(r=>r.map(Math.abs)));
+    majVec = dsM.map(r=>majorization(r));
+    uniforms = windowed.map(toUniform);
+    eigs = eigenvalues(corrM, p);
+
+    // riskVec: deslizante con paso proporcional
+    const step = Math.max(1, Math.floor(win_n/30));
+    riskVec = [];
+    for(let t=0; t+step<=windowed[0].length; t+=step){
+        const sl = windowed.map(s=>s.slice(t,t+step));
+        const sc = Array.from({length:p},(_,i)=>Array.from({length:p},(_,j)=>pearsonCorr(sl[i],sl[j])));
+        const ds = sinkhornNormalize(sc.map(r=>r.map(Math.abs)));
+        const ei = eigenvalues(ds, p);
+        const sig = ei.filter(e=>e>mp_upper).length;
+        // Riesgo = fracción de eigenvalores significativos + contribución del dominante (normalizada)
+        // CORRECCIÓN: normalizar ei[0] respecto a mp_upper (no mp*3)
+        riskVec.push(Math.min(1, sig/p + Math.max(0,(ei[0]-mp_upper)/Math.max(0.01,mp_upper))*0.4));
+    }
+
+    // Markov colectivo: re-calcular sobre ventana actual
+    stations.forEach(st=>{
+        if(!st.seriesRaw.length)return;
+        const tempWin = st.seriesRaw[0].slice(startIdx,endIdx);
+        const disc = discretizeSeries(tempWin);
+        st.markovT = buildTransitionMatrix(disc);
+        st.markovCurrState = disc[disc.length-1]??1;
+    });
+
+    updateUI(rawWin, startIdx, endIdx, p, win_n, mp_upper);
+}
+
+// ── TIMELINE ──
+function updateTimeline(start, end, total) {
+    if(total<1)return;
+    const strip=document.getElementById('timeline-strip');
+    const W=strip.clientWidth||276;
+    const left=(start/total)*100;
+    const width=((end-start)/total)*100;
+    document.getElementById('tl-window').style.cssText=`left:${left}%;width:${width}%;position:absolute;top:0;bottom:0;background:rgba(0,200,224,0.15);border-left:2px solid var(--c1);border-right:2px solid var(--c1);`;
+
+    // Etiquetas de tiempo
+    const fmt=i=>{if(!hourly[i])return'—'; const d=new Date(hourly[i].time); return d.toLocaleDateString('es',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});};
+    document.getElementById('tl-start').textContent=fmt(start);
+    document.getElementById('tl-mid').textContent=fmt(Math.floor((start+end)/2));
+    document.getElementById('tl-end').textContent=fmt(Math.min(end-1,hourly.length-1));
+
+    // Cursor en posición actual (último punto de la ventana)
+    document.getElementById('tl-cursor').style.left=(end/total*100)+'%';
+}
+
+// Click en timeline para mover ventana
+document.getElementById('timeline-strip').addEventListener('click', function(e){
+    if(!hourly.length)return;
+    const rect=this.getBoundingClientRect();
+    const frac=(e.clientX-rect.left)/rect.width;
+    const newEnd=Math.round(frac*hourly.length);
+    wStart=Math.max(0,Math.min(newEnd-wSize,hourly.length-wSize));
+    document.getElementById('slider-t0').value=wStart;
+    recompute();
+});
+
+// ── DRAW ──
+function drawHeatmap(cv, data, cm='diverge') {
+    if(!cv||!data.length)return;
+    const ctx=cv.getContext('2d'),r=data.length,c=data[0].length;
+    cv.width=c; cv.height=r;
+    const flat=data.flat(), min=Math.min(...flat), max=Math.max(...flat), range=max-min||1;
+    const img=ctx.createImageData(c,r);
+    for(let i=0;i<r;i++)for(let j=0;j<c;j++){
+        const t=(data[i][j]-min)/range;let rr,gg,bb;
+        if(cm==='diverge'){rr=t>0.5?255:Math.round(t*2*255);gg=t>0.5?Math.round((1-t)*2*255):Math.round(t*2*255);bb=t<0.5?255:Math.round((1-t)*2*255);}
+        else if(cm==='heat'){rr=Math.round(t*255);gg=Math.round(t*t*180);bb=Math.round((1-t)*60);}
+        else{rr=Math.round(68+t*187);gg=Math.round(1+t*220);bb=Math.round((1-t)*84+84);}
+        const idx=(i*c+j)*4;img.data[idx]=rr;img.data[idx+1]=gg;img.data[idx+2]=bb;img.data[idx+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+}
+
+function drawLine(cv, data, color='#4af', fill=false) {
+    if(!cv||!data.length)return;
+    const ctx=cv.getContext('2d'),W=cv.width||300,H=cv.height||50;
+    cv.width=W;cv.height=H;ctx.clearRect(0,0,W,H);
+    const min=Math.min(...data),max=Math.max(...data),range=max-min||1;
+    ctx.strokeStyle=color;ctx.lineWidth=1.2;ctx.beginPath();
+    data.forEach((v,i)=>{const x=(i/(data.length-1||1))*(W-2)+1,y=H-((v-min)/range)*(H-4)-2;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.stroke();
+    if(fill){ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fillStyle=color.replace(')',',0.15)').replace('rgb','rgba').replace('#','');ctx.fill();}
+}
+
+function drawGiros(cv, rv, ws) {
+    if(!cv||!rv.length)return;
+    const ctx=cv.getContext('2d'),W=360,H=180;
+    cv.width=W;cv.height=H;ctx.fillStyle='#030608';ctx.fillRect(0,0,W,H);
+    const cx=W/2,cy=H/2,bR=52;
+    const mean=rv.reduce((s,v)=>s+v,0)/rv.length;
+    rv.forEach((risk,t)=>{
+        const a=(t/rv.length)*Math.PI*2-Math.PI/2,def=1+risk*0.7,r=bR*def;
+        const x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);
+        ctx.beginPath();ctx.arc(x,y,2+risk*4,0,Math.PI*2);
+        ctx.fillStyle=`hsla(${200-risk*140},80%,60%,0.7)`;ctx.fill();
+    });
+    ctx.beginPath();
+    for(let i=0;i<=64;i++){
+        const a=(i/64)*Math.PI*2;
+        const wave=1+mean*0.55*Math.sin(a*3+Date.now()*0.001);
+        const rr=bR*wave,x=cx+rr*Math.cos(a),y=cy+rr*Math.sin(a)*0.58;
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle=`hsla(${200-mean*140},80%,70%,0.5)`;ctx.lineWidth=1.8;ctx.stroke();
+    ctx.fillStyle='#8ab8cc';ctx.font="9px 'JetBrains Mono'";
+    ctx.fillText(`μ riesgo: ${mean.toFixed(3)} | w=${ws}h`,8,14);
+}
+
+function drawGauge(cv, val) {
+    if(!cv)return;
+    const ctx=cv.getContext('2d'),W=cv.parentElement?cv.parentElement.clientWidth:200,H=50;
+    cv.width=W;cv.height=H;ctx.fillStyle='#05090e';ctx.fillRect(0,0,W,H);
+    const grad=ctx.createLinearGradient(0,0,W,0);
+    grad.addColorStop(0,'#39ff84');grad.addColorStop(0.4,'#ffe066');grad.addColorStop(0.7,'#ff5e1a');grad.addColorStop(1,'#ff3b3b');
+    ctx.fillStyle=grad;ctx.fillRect(16,H-14,(W-32)*Math.min(1,Math.max(0,val)),8);
+    ctx.strokeStyle='#1e3a52';ctx.strokeRect(16,H-14,W-32,8);
+    ctx.fillStyle='#d4edf7';ctx.font="9px 'JetBrains Mono'";ctx.fillText(`${Math.round(val*100)}%`,W/2-12,H-19);
+}
+
+function drawEvoChart(cv, pressure, riskByHour) {
+    if(!cv||!pressure.length)return;
+    const ctx=cv.getContext('2d'),W=580,H=140;
+    cv.width=W;cv.height=H;ctx.fillStyle='#05090e';ctx.fillRect(0,0,W,H);
+    const pMin=Math.min(...pressure),pMax=Math.max(...pressure),pR=pMax-pMin||1;
+    ctx.strokeStyle='#b06aff';ctx.lineWidth=1.3;ctx.beginPath();
+    pressure.forEach((v,i)=>{const x=(i/(pressure.length-1||1))*(W-20)+10,y=10+((pMax-v)/pR)*110;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+    ctx.fillStyle='#b06aff88';ctx.font="8px 'JetBrains Mono'";ctx.fillText('Presión (hPa)',10,12);
+    if(riskByHour.length){
+        const rMax=Math.max(...riskByHour)||1;
+        ctx.strokeStyle='#ff5e1a';ctx.lineWidth=1.5;ctx.beginPath();
+        riskByHour.forEach((v,i)=>{const x=(i/(riskByHour.length-1||1))*(W-20)+10,y=H-10-(v/rMax)*110;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+        ctx.fillStyle='#ff5e1a88';ctx.fillText('Riesgo relativo',10,24);
+    }
+}
+
+// ── FORECAST DRAW ──
+function drawForecastModule(content, horizon) {
+    if(stations.filter(s=>s.markovT).length===0){content.innerHTML='<div style="font-size:9px;color:var(--dim);padding:10px">Sin datos. Carga al menos una estación.</div>';return;}
+
+    const hrSteps = Math.ceil(horizon);
+    // Predicción por estación
+    const forecasts = stations.filter(s=>s.markovT).map(s=>markovStepN(s.markovT, s.markovCurrState, hrSteps));
+    // Pesos: si hay múltiples, ponderamos por correlación de lluvia entre estaciones
+    let weights = stations.filter(s=>s.markovT).map(()=>1);
+    if(stations.length>1&&seriesRaw.length){
+        const refRain = seriesRaw[5]?.slice(wStart,wStart+wSize)||[];
+        weights = stations.filter(s=>s.markovT).map(s=>{
+            const sr = s.seriesRaw[5]?.slice(wStart,wStart+wSize)||[];
+            if(sr.length<4||refRain.length<4) return 1;
+            return Math.abs(pearsonCorr(refRain.slice(0,Math.min(refRain.length,sr.length)),sr.slice(0,Math.min(refRain.length,sr.length))))+0.1;
+        });
+    }
+    const aggFC = aggregateForecast(forecasts, weights);
+    // IC con bootstrap
+    const mainSt = stations.find(s=>s.markovT);
+    const ci = mainSt ? markovConfidenceInterval(mainSt.markovT, mainSt.markovCurrState, hrSteps, 300) : [{p10:0,p50:aggFC[0],p90:0},{p10:0,p50:aggFC[1],p90:0},{p10:0,p50:aggFC[2],p90:0}];
+
+    const stateNames=['FRÍO','NEUTRAL','CÁLIDO'];
+    const stateColors=['#00c8e0','#3d6880','#ffe066'];
+    const stateClasses=['cold','neutral','warm'];
+
+    content.innerHTML=`
+    <div style="font-size:9px;color:var(--muted);margin-bottom:6px">Predicción Markov · ${hrSteps}h · ${stations.filter(s=>s.markovT).length} estación(es) · Bootstrap IC p10–p90</div>
+    <div class="forecast-horizon">
+        ${[6,12,24,48,72].map(h=>`<button class="fh-btn ${h===forecastHorizon?'sel':''}" onclick="setForecastHorizon(${h})">${h}h</button>`).join('')}
+    </div>
+    <div class="mc-state-grid">
+        ${aggFC.map((p,i)=>`
+        <div class="mc-state ${stateClasses[i]}">
+            <span class="state-label">${stateNames[i]}</span>
+            <div class="state-prob">${Math.round(p*100)}%</div>
+            <div style="font-size:7px;color:var(--dim)">IC: ${Math.round(ci[i].p10*100)}–${Math.round(ci[i].p90*100)}%</div>
+            <div style="margin-top:4px;height:4px;background:var(--bg3);border-radius:1px;overflow:hidden">
+                <div style="height:100%;width:${Math.round(p*100)}%;background:${stateColors[i]};opacity:0.8;border-radius:1px"></div>
+            </div>
+        </div>`).join('')}
+    </div>
+    <div style="margin-top:8px;font-family:'Syne',sans-serif;font-size:9px;color:var(--dim);letter-spacing:2px">TRAYECTORIA HORARIA</div>
+    <canvas id="forecast-traj-canvas" style="width:100%;height:80px;border:1px solid var(--bord);margin-top:4px;border-radius:2px"></canvas>
+    <div style="margin-top:6px" id="station-forecasts-detail"></div>`;
+
+    // Dibuja trayectoria de distribución de estados hora a hora
+    setTimeout(()=>{
+        const fc=document.getElementById('forecast-traj-canvas');
+        if(!fc||!mainSt)return;
+        const ctx=fc.getContext('2d'),W=580,H=80,maxH=Math.min(hrSteps,72);
+        fc.width=W;fc.height=H;ctx.fillStyle='#030608';ctx.fillRect(0,0,W,H);
+        const traj=[];
+        let dist=[0,0,0];dist[mainSt.markovCurrState]=1.0;
+        for(let s=0;s<maxH;s++){
+            const nd=[0,0,0];
+            for(let j=0;j<3;j++)for(let i=0;i<3;i++) nd[j]+=dist[i]*mainSt.markovT[i][j];
+            dist=nd;traj.push([...dist]);
+        }
+        // Stack chart
+        traj.forEach((d,t)=>{
+            const x=(t/(maxH-1||1))*(W-10)+5;
+            let y=H;
+            [0,1,2].forEach((s,si)=>{
+                const h=d[s]*H;
+                ctx.fillStyle=stateColors[si]+'aa';
+                ctx.fillRect(x-2,y-h,4,h);
+                y-=h;
+            });
+        });
+        // Leyenda
+        ctx.fillStyle='#8ab8cc';ctx.font="8px 'JetBrains Mono'";
+        ctx.fillText('t=0',6,H-3);ctx.fillText(`t=${maxH}h`,W-30,H-3);
+
+        // Detalle por estación
+        const det=document.getElementById('station-forecasts-detail');
+        if(det&&stations.length>1){
+            det.innerHTML=`<div style="font-size:8px;color:var(--dim);letter-spacing:1px;margin-bottom:4px">CONTRIBUCIONES POR ESTACIÓN</div>`+
+            stations.filter(s=>s.markovT).map((s,i)=>{
+                const fc2=markovStepN(s.markovT,s.markovCurrState,hrSteps);
+                return `<div class="drow"><div class="dl" style="color:${s.color}">${s.label}</div>
+                <div class="dv" style="font-size:8px">❄${Math.round(fc2[0]*100)}% ≈${Math.round(fc2[1]*100)}% 🌡${Math.round(fc2[2]*100)}%</div></div>`;
+            }).join('');
+        }
+    },50);
+}
+
+function setForecastHorizon(h) {
+    forecastHorizon = h;
+    if(activeMod==='forecast') recompute();
+}
+
+// ── UI UPDATE ──
+function formatTime(iso) {
+    const d=new Date(iso);
+    return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+}
+
+function updateUI(rawWin, start, end, p, win_n, mp_upper) {
+    document.getElementById('lbl-w').textContent=wSize;
+    document.getElementById('lbl-t0').textContent=wStart;
+    document.getElementById('info-n').textContent=win_n;
+    document.getElementById('info-p').textContent=p;
+    document.getElementById('info-q').textContent=(p/win_n).toFixed(4);
+    document.getElementById('info-mp').textContent=mp_upper.toFixed(3);
+    document.getElementById('pill-w').textContent=wSize;
+    document.getElementById('pill-q').textContent=(p/win_n).toFixed(3);
+    document.getElementById('pill-l1').textContent=eigs[0]?.toFixed(3)||'—';
+
+    const riskMean=riskVec.length?riskVec.reduce((s,v)=>s+v,0)/riskVec.length:0;
+    document.getElementById('pill-risk').textContent=Math.round(riskMean*100)+'%';
+    document.getElementById('pill-risk').parentElement.className='spill '+(riskMean>0.5?'warn':'active');
+
+    if(hourly.length&&start<hourly.length){
+        document.getElementById('pill-time').textContent=formatTime(hourly[start].time);
+        document.getElementById('time-range-label').textContent=`${formatTime(hourly[start].time)} → ${formatTime(hourly[Math.min(end-1,hourly.length-1)].time)}`;
+    }
+    updateTimeline(start, end, hourly.length);
+
+    // Eigenvalues
+    const eTot=eigs.reduce((s,v)=>s+v,1e-9), epct=eigs.map(v=>v/eTot);
+    document.getElementById('eigen-display').innerHTML=eigs.slice(0,3).map((e,i)=>`
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <span style="color:${['var(--c1)','var(--c4)','var(--c2)'][i]};font-weight:700;width:22px">λ${i+1}</span>
+            <div style="flex:1;height:5px;background:var(--bg3);border-radius:1px;position:relative">
+                <div style="width:${(epct[i]*100).toFixed(1)}%;height:100%;background:${['var(--c1)','var(--c4)','var(--c2)'][i]};border-radius:1px"></div>
+                ${e>mp_upper?`<span style="position:absolute;right:0;top:-10px;font-size:7px;color:var(--c2)">★</span>`:''}
+            </div>
+            <span style="font-size:9px;color:${e>mp_upper?'var(--c2)':'var(--muted)'};width:44px;text-align:right">${e.toFixed(3)}</span>
+        </div>`).join('')+`<div style="font-size:8px;color:var(--dim);margin-top:2px">★ > MP λ₊=${mp_upper.toFixed(3)}</div>`;
+
+    const sigCount=eigs.filter(e=>e>mp_upper).length;
+    let regime='estable';if(sigCount>=3)regime='coherente';else if(sigCount===2)regime='transición';else if(sigCount===0&&win_n>p)regime='caótico';
+    const rb=document.getElementById('regime-badge-r');
+    rb.className='regime-badge '+(regime==='estable'?'stable':regime==='coherente'?'coherent':regime==='transición'?'transition':'chaotic');
+    rb.textContent=regime.toUpperCase();
+
+    // Riesgo gauge
+    document.getElementById('risk-val').textContent=Math.round(riskMean*100)+'%';
+    const riskStd = riskVec.length>1?Math.sqrt(riskVec.reduce((s,v)=>s+(v-riskMean)**2,0)/riskVec.length):0;
+    document.getElementById('risk-conf').textContent=riskVec.length>1?Math.round((1-riskStd)*100)+'%':'—';
+    document.getElementById('risk-legend').textContent=`${win_n}h | λ signi.: ${sigCount}/${p} | σ_riesgo: ${riskStd.toFixed(3)}`;
+    drawGauge(document.getElementById('risk-gauge'),riskMean);
+
+    // Predicción lluvia (mejorada)
+    if(rawWin.length){
+        const avgClouds=rawWin[4].reduce((s,v)=>s+v,0)/rawWin[4].length;
+        const avgHum=rawWin[1].reduce((s,v)=>s+v,0)/rawWin[1].length;
+        const avgRain=rawWin[5].reduce((s,v)=>s+v,0)/rawWin[5].length;
+        // Agrega predicción Markov si hay cadenas
+        const markovRainP = stations.filter(s=>s.markovT).map(s=>{
+            const fc=markovStepN(s.markovT,s.markovCurrState,6);
+            return fc[0]*0.5+fc[1]*0.1; // frío y neutral tienen prob de lluvia
+        });
+        const avgMarkovP = markovRainP.length?markovRainP.reduce((a,b)=>a+b,0)/markovRainP.length:0;
+        const willRain=(avgClouds>60&&avgHum>70)||avgRain>0.2||riskMean>0.55||avgMarkovP>0.45;
+        const confidence=Math.round((Math.abs(riskMean-0.5)*2)*100);
+        const box=document.getElementById('rain-pred-box');
+        box.className='rain-prediction '+(willRain?'yes':'no');
+        document.getElementById('rain-pred-text').textContent=willRain?'SÍ':'NO';
+        document.getElementById('rain-pred-detail').textContent=`☁${avgClouds.toFixed(0)}% · 💧${avgHum.toFixed(0)}% · ${avgRain.toFixed(1)}mm · conf:${confidence}%`;
+    }
+
+    // Markov display en panel derecho
+    const mainStation = stations.find(s=>s.markovT);
+    if(mainStation){
+        const fc6=markovStepN(mainStation.markovT,mainStation.markovCurrState,6);
+        const stNames=['❄ FRÍO','≈ NEUTRO','🌡 CÁLIDO'];
+        const stColors=['#00c8e0','#3d6880','#ffe066'];
+        document.getElementById('markov-display').innerHTML=
+            `<div style="font-size:8px;color:var(--dim);margin-bottom:4px">Estado actual: ${['FRÍO','NEUTRO','CÁLIDO'][mainStation.markovCurrState]} · Horizonte: 6h</div>`+
+            stNames.map((n,i)=>`
+            <div class="drow">
+                <div class="dl" style="color:${stColors[i]}">${n}</div>
+                <div style="flex:1;margin:0 6px;height:3px;background:var(--bg3);border-radius:1px"><div style="width:${Math.round(fc6[i]*100)}%;height:100%;background:${stColors[i]};border-radius:1px"></div></div>
+                <div class="dv" style="color:${stColors[i]}">${Math.round(fc6[i]*100)}%</div>
+            </div>`).join('');
+    }
+
+    // Weather now
+    const last=rawWin.length?rawWin.map(s=>s[s.length-1]):null;
+    if(last) document.getElementById('weather-now').innerHTML=VARS.map((n,i)=>`<div class="drow"><div class="dl">${n}</div><div class="dv" style="color:${COLORS[i]}">${last[i].toFixed(1)}</div></div>`).join('');
+
+    renderModule(rawWin, p, mp_upper);
+}
+
+// ── RENDER MÓDULOS ──
+function renderModule(rawWin, p, mp_upper) {
+    const content=document.getElementById('module-content');
+    if(activeMod==='heatmap'){
+        content.innerHTML=`<div class="section-title">FIRMA ESPECTRAL <em>· Heatmaps</em></div><div id="hc"></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px" id="lc"></div>`;
+        const hc=document.getElementById('hc');
+        rawWin.forEach((row,i)=>{
+            const w=document.createElement('div');w.className='canvas-wrap';w.style.marginBottom='4px';
+            const t=document.createElement('div');t.style.cssText='font-size:9px;color:var(--dim);padding:2px 6px';t.textContent=VARS[i];
+            const c=document.createElement('canvas');c.style.height='30px';c.onclick=()=>audio.sonify([[row]],2);
+            w.appendChild(t);w.appendChild(c);hc.appendChild(w);
+            setTimeout(()=>drawHeatmap(c,[row],'diverge'),10);
+        });
+        const lc=document.getElementById('lc');
+        rawWin.forEach((s,i)=>{
+            const c=document.createElement('canvas');c.style.cssText='width:180px;height:40px;border:1px solid var(--bord)';c.width=180;c.height=40;
+            const lb=document.createElement('div');lb.style.cssText='font-size:8px;color:var(--dim)';lb.textContent=VARS[i];
+            const w2=document.createElement('div');w2.appendChild(lb);w2.appendChild(c);lc.appendChild(w2);
+            setTimeout(()=>drawLine(c,s,COLORS[i]),10);
+        });
+    }else if(activeMod==='corr'){
+        content.innerHTML=`<div class="section-title">CORRELACIÓN <em>· Pearson + Sinkhorn DS</em></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="font-size:9px;color:var(--dim)">Pearson r</div><canvas id="c1" style="width:100%;height:120px;border:1px solid var(--bord)"></canvas></div><div><div style="font-size:9px;color:var(--dim)">DS (Sinkhorn)</div><canvas id="c2" style="width:100%;height:120px;border:1px solid var(--bord)"></canvas></div></div><div style="margin-top:8px;font-size:9px;color:var(--dim)">Mayorización acumulada (DS)</div><canvas id="cmaj" style="width:100%;height:50px;border:1px solid var(--bord);margin-top:4px"></canvas>`;
+        setTimeout(()=>{
+            drawHeatmap(document.getElementById('c1'),corrM,'diverge');
+            drawHeatmap(document.getElementById('c2'),dsM,'heat');
+            // Mayorización: promedio de curvas
+            const avgMaj=majVec[0]?.map((_,i)=>majVec.reduce((s,r)=>s+r[i],0)/majVec.length)||[];
+            const cm=document.getElementById('cmaj');cm.width=580;cm.height=50;
+            const ctx=cm.getContext('2d'),W=580,H=50;
+            ctx.fillStyle='#030608';ctx.fillRect(0,0,W,H);
+            majVec.forEach((mv,si)=>{
+                ctx.strokeStyle=COLORS[si]+'99';ctx.lineWidth=0.8;ctx.beginPath();
+                mv.forEach((v,i)=>{const x=(i/(mv.length-1||1))*(W-10)+5,y=H-4-(v/Math.max(...mv.flat(),1))*(H-8);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+            });
+        },10);
+    }else if(activeMod==='copulas'){
+        content.innerHTML=`<div class="section-title">CÓPULAS <em>· Márgenes uniformes</em></div><div style="display:flex;flex-wrap:wrap;gap:8px" id="cs"></div>`;
+        const cs=document.getElementById('cs');
+        for(let i=0;i<6;i++)for(let j=i+1;j<6;j++){
+            const rho=corrM[i][j],w=document.createElement('div');w.style.textAlign='center';
+            const lb=document.createElement('div');lb.style.cssText='font-size:7px;color:var(--dim)';lb.textContent=VARS[i].split(' ')[0]+'×'+VARS[j].split(' ')[0]+` ρ=${rho.toFixed(2)}`;
+            const c=document.createElement('canvas');c.style.cssText='width:80px;height:80px;border:1px solid var(--bord)';
+            w.appendChild(lb);w.appendChild(c);cs.appendChild(w);
+            setTimeout(()=>{
+                const ctx=c.getContext('2d'),S=80;c.width=S;c.height=S;ctx.fillStyle='#05090e';ctx.fillRect(0,0,S,S);
+                for(let k=0;k<uniforms[i].length;k++){ctx.fillStyle=`hsla(${200+rho*60},70%,60%,0.45)`;ctx.fillRect(uniforms[i][k]*S,(1-uniforms[j][k])*S,2,2);}
+            },10);
+        }
+    }else if(activeMod==='eigen'){
+        content.innerHTML=`<div class="section-title">EIGENVALUES <em>· Marchenko-Pastur (q=p/n=${(q).toFixed(4)})</em></div><canvas id="ep" style="width:100%;height:90px;border:1px solid var(--bord)"></canvas><div style="margin-top:6px;font-size:9px;color:var(--text)" id="ed"></div><div style="margin-top:6px;font-size:8px;color:var(--dim)">Borde superior Marchenko-Pastur: λ₊ = σ²(1+√q)² = ${mp_upper.toFixed(4)} (σ²=1)</div>`;
+        setTimeout(()=>{
+            const cv=document.getElementById('ep'),ctx=cv.getContext('2d'),W=580,H=90;
+            cv.width=W;cv.height=H;ctx.fillStyle='#05090e';ctx.fillRect(0,0,W,H);
+            const maxE=Math.max(...eigs,mp_upper*1.5);
+            // MP boundary line
+            const mpX=(mp_upper/maxE)*(W-20)+10;
+            ctx.strokeStyle='#ff5e1a';ctx.setLineDash([3,3]);ctx.lineWidth=1;
+            ctx.beginPath();ctx.moveTo(mpX,0);ctx.lineTo(mpX,H);ctx.stroke();ctx.setLineDash([]);
+            ctx.fillStyle='#ff5e1a66';ctx.font="8px 'JetBrains Mono'";ctx.fillText(`λ₊=${mp_upper.toFixed(3)}`,mpX+3,12);
+            // Eigenvalores
+            eigs.forEach((e,k)=>{
+                const x=(e/maxE)*(W-20)+10;
+                const sig=e>mp_upper;
+                ctx.beginPath();ctx.arc(x,H/2,sig?7:5,0,Math.PI*2);
+                ctx.fillStyle=sig?'#39ff84':'#3d6880';ctx.fill();
+                if(sig){ctx.strokeStyle='#39ff84';ctx.lineWidth=1;ctx.stroke();}
+                ctx.fillStyle='#d4edf7';ctx.font="7px 'JetBrains Mono'";ctx.fillText(`λ${k+1}`,x-5,H/2+18);
+            });
+            document.getElementById('ed').innerHTML=eigs.map((e,i)=>`<span style="margin-right:8px;color:${e>mp_upper?'#39ff84':'#3d6880'};font-size:9px">λ${i+1}=${e.toFixed(3)}${e>mp_upper?' ★':''}</span>`).join('');
+        },10);
+    }else if(activeMod==='giros'){
+        content.innerHTML=`<div class="section-title">GIROS RHYTHM <em>· Lenteja dinámica</em></div><canvas id="gc" style="width:100%;height:200px;border:1px solid var(--bord)"></canvas><canvas id="rl" style="width:100%;height:50px;margin-top:6px;border:1px solid var(--bord)"></canvas>`;
+        const gc=document.getElementById('gc');const rl=document.getElementById('rl');
+        gc.width=360;gc.height=180;rl.width=580;rl.height=50;
+        setTimeout(()=>{drawGiros(gc,riskVec,wSize);drawLine(rl,riskVec.length?riskVec:[0],'#ff5e1a');},10);
+    }else if(activeMod==='evo'){
+        content.innerHTML=`<div class="section-title">EVOLUCIÓN <em>· Presión vs Riesgo temporal</em></div><canvas id="evoc" style="width:100%;height:160px;border:1px solid var(--bord)"></canvas>`;
+        setTimeout(()=>{
+            const win=seriesRaw[2]?.slice(Math.max(0,wStart),Math.min(wStart+wSize,seriesRaw[2].length))||[];
+            const step=Math.max(1,Math.floor(win.length/30));
+            const riskByHour=[];
+            const mp=marchenkoPasturUpper(p,wSize);
+            for(let t=0;t+step<=windowed[0].length;t+=step){
+                const sl=windowed.map(s=>s.slice(t,t+step));
+                const sc=Array.from({length:p},(_,i)=>Array.from({length:p},(_,j)=>pearsonCorr(sl[i],sl[j])));
+                const ds=sinkhornNormalize(sc.map(r=>r.map(Math.abs)));
+                const ei=eigenvalues(ds,p);
+                const sig=ei.filter(e=>e>mp).length;
+                riskByHour.push(Math.min(1,sig/p+Math.max(0,(ei[0]-mp)/Math.max(0.01,mp))*0.4));
+            }
+            const evoc=document.getElementById('evoc');evoc.width=580;evoc.height=140;
+            drawEvoChart(evoc,win,riskByHour);
+        },10);
+    }else if(activeMod==='forecast'){
+        drawForecastModule(content, forecastHorizon);
+    }
+}
+
+// ── EVENTS ──
+document.getElementById('slider-w').oninput=function(){
+    wSize=+this.value;
+    document.getElementById('slider-t0').max=Math.max(0,(series[0]?.length||0)-wSize);
+    recompute();
+};
+document.getElementById('slider-t0').oninput=function(){wStart=+this.value;recompute();};
+document.getElementById('module-tabs').addEventListener('click',e=>{
+    if(e.target.classList.contains('module-tab')){
+        document.querySelectorAll('.module-tab').forEach(t=>t.classList.remove('sel'));
+        e.target.classList.add('sel');
+        activeMod=e.target.dataset.mod;
+        recompute();
+    }
+});
+document.getElementById('btn-sonify').onclick=()=>{
+    const s=Math.max(0,wStart),e=Math.min(wStart+wSize,seriesRaw[0]?.length||0);
+    audio.sonify(seriesRaw.map(x=>x.slice(s,e)),4);
+};
+document.getElementById('btn-stop').onclick=()=>audio.stop();
+
+document.getElementById('btn-add-station').onclick=()=>{
+    if(addingStation){setAddingMode(false);return;}
+    setAddingMode(true);
+};
+
+document.getElementById('fetch-btn').onclick=async()=>{
+    const lat=parseFloat(document.getElementById('city-lat').value)||4.711;
+    const lon=parseFloat(document.getElementById('city-lon').value)||-74.072;
+    // Primera estación (o reemplaza la primera)
+    if(stations.length>0&&stations[0].marker){map.removeLayer(stations[0].marker);stations.splice(0,1);}
+    initMap(lat,lon);
+    await addStation(lat,lon);
+    document.getElementById('city-lat').value=lat.toFixed(3);
+    document.getElementById('city-lon').value=lon.toFixed(3);
+};
+
+// ── INIT ──
+(async()=>{
+    initMap(4.711,-74.072);
+    try{await addStation(4.711,-74.072);}catch(e){console.warn(e);}
+})();
+</script>
+</body>
+</html>
